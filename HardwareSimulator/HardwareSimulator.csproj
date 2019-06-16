@@ -94,5 +94,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HardwareSimulator.Core\HardwareSimulator.Core.csproj">
+      <Project>{907ee2eb-a1d4-4d31-92d8-9423a96c7e10}</Project>
+      <Name>HardwareSimulator.Core</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
