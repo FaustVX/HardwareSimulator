@@ -35,8 +35,10 @@ namespace HardwareSimulator.Core
         {
             var dict = new Dictionary<string, bool?>();
             foreach (var (name, value) in inputs)
-                if (dict.ContainsKey(name))
-                    throw new System.Exception();
+                if (!Inputs.Contains(name))
+                    throw new System.Exception($"'{name}' is not an input Connector");
+                else if (dict.ContainsKey(name))
+                    throw new System.Exception($"'{name}' is already defined");
                 else
                     dict.Add(name, value);
             return Execute(dict);
