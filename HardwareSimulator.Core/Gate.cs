@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace HardwareSimulator.Core
@@ -29,7 +30,11 @@ namespace HardwareSimulator.Core
         public static void RegisterGate(Gate gate)
             => Gates[gate.Name.ToLower()] = gate;
 
-        protected abstract IReadOnlyDictionary<string, bool?> Execute(Dictionary<string, bool?> inputs);
+        public static void RegisterGate<TGate>()
+            where TGate : Gate, new()
+            => RegisterGate(new TGate());
+
+        protected abstract Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs);
 
         public IReadOnlyDictionary<string, bool?> Execute(params (string name, bool? value)[] inputs)
         {
@@ -41,7 +46,14 @@ namespace HardwareSimulator.Core
                     throw new System.Exception($"'{name}' is already defined");
                 else
                     dict.Add(name, value);
-            return Execute(dict);
+
+            foreach (var input in Inputs.Where(i => !dict.ContainsKey(i)))
+                dict.Add(input, false);
+
+            dict = Execute(dict);
+            foreach (var o in Outputs.Where(o => !dict.ContainsKey(o)))
+                dict.Add(o, null);
+            return new ReadOnlyDictionary<string, bool?>(dict);
         }
     }
 }

@@ -15,7 +15,7 @@ namespace HardwareSimulator.Test
         public void Initialize1()
         {
             Gate.Gates.Clear();
-            Gate.RegisterGate(new Nand());
+            Gate.RegisterGate<Nand>();
         }
 
         [TestMethod]
@@ -47,13 +47,12 @@ namespace HardwareSimulator.Test
         {
             TestXor();
         }
-        
+
         public void TestXor()
         {
             Xor = ExternalGate.Parse(@"D:\Downloads\nand2tetris\projects\01\Xor.hdl");
             Assert.IsNotNull(Xor);
             Assert.AreEqual("Xor", Xor.Name, false);
-            Assert.AreEqual(5, Gate.Gates.Count);
         }
 
         [TestMethod]

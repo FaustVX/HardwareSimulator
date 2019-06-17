@@ -3,14 +3,13 @@ using HardwareSimulator.Core;
 
 namespace HardwareSimulator.Test
 {
-
     [TestClass]
     public class MyTestClassMuxDMux
     {
         [TestInitialize]
         public void Initialize()
         {
-            Gate.RegisterGate(new Nand());
+            Gate.RegisterGate<Nand>();
             Mux = ExternalGate.Parse(@"D:\Downloads\nand2tetris\projects\01\Mux.hdl");
             DMux = ExternalGate.Parse(@"D:\Downloads\nand2tetris\projects\01\DMux.hdl");
         }

@@ -16,7 +16,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HardwareSimulator.Core\HardwareSimulator.Core.csproj" />
-    <ProjectReference Include="..\Nand\Nand.csproj" />
+    <ProjectReference Include="..\Nand\BasicComponent.csproj" />
   </ItemGroup>
 
 </Project>
