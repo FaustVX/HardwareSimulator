@@ -1,22 +1,18 @@
 ﻿using HardwareSimulator.Core;
+using System.Collections.Generic;
 
 namespace HardwareSimulator
 {
     public sealed class Nand : BuiltInGate
     {
         public Nand()
-            : base(new[] { new InputConnector("a"), new InputConnector("b") }, new[] { new OutputConnector("out") })
-        {
-            A   = (InputConnector) Connectors["a"];
-            B   = (InputConnector) Connectors["b"];
-            Out = (OutputConnector)Connectors["out"];
-        }
+            : base("nand", new[] { "a", "b" }, new[] { "out" })
+        { }
 
-        public InputConnector A { get; }
-        public InputConnector B { get; }
-        public OutputConnector Out { get; }
+        public bool Execute(bool a, bool b)
+            => !(a && b);
 
-        public override void Update()
-            => Out.Value = (A.Value.HasValue && B.Value.HasValue) ? !(A.Value.Value && B.Value.Value) : new bool?();
+        protected override IReadOnlyDictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)
+            => new Dictionary<string, bool?>() { ["out"] = (inputs["a"].HasValue && inputs["b"].HasValue) ? Execute(inputs["a"].Value, inputs["b"].Value) : new bool?() };
     }
 }

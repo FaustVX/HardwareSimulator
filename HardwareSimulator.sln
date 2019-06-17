@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Nand", "Nand\Nand.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HardwareSimulator.Core", "HardwareSimulator.Core\HardwareSimulator.Core.csproj", "{907EE2EB-A1D4-4D31-92D8-9423A96C7E10}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HardwareSimulator.Test", "HardwareSimulator.Test\HardwareSimulator.Test.csproj", "{BA0585DD-8006-4D6A-B1EE-D696BF10113F}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,6 +31,10 @@ Global
 		{907EE2EB-A1D4-4D31-92D8-9423A96C7E10}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{907EE2EB-A1D4-4D31-92D8-9423A96C7E10}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{907EE2EB-A1D4-4D31-92D8-9423A96C7E10}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BA0585DD-8006-4D6A-B1EE-D696BF10113F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BA0585DD-8006-4D6A-B1EE-D696BF10113F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BA0585DD-8006-4D6A-B1EE-D696BF10113F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BA0585DD-8006-4D6A-B1EE-D696BF10113F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

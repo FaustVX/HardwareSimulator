@@ -4,9 +4,8 @@ namespace HardwareSimulator.Core
 {
     public abstract class BuiltInGate : Gate
     {
-        protected BuiltInGate(IEnumerable<InputConnector> inputs, IEnumerable<OutputConnector> outputs)
-            : base(inputs, outputs)
-        {
-        }
+        protected BuiltInGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs)
+            : base(name, inputs, outputs)
+        { }
     }
 }

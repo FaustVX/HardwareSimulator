@@ -1,24 +1,45 @@
 ﻿using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace HardwareSimulator.Core
 {
     public abstract class Gate
     {
-        public IReadOnlyList<InputConnector> Inputs { get; }
-        public IReadOnlyList<OutputConnector> Outputs { get; }
+        public static Dictionary<string, Gate> Gates { get; } = new Dictionary<string, Gate>();
 
-        protected IReadOnlyDictionary<string, Connector> Connectors { get; }
+        public IReadOnlyList<string> Inputs { get; }
+        public IReadOnlyList<string> Outputs { get; }
+        public string Name { get; }
 
-        protected Gate(IEnumerable<InputConnector> inputs, IEnumerable<OutputConnector> outputs)
+        protected ISet<string> Connectors { get; }
+
+        protected Gate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs)
         {
-            var connectors = inputs.Cast<Connector>().Concat(outputs);
-            Connectors = new ReadOnlyDictionary<string, Connector>(connectors.ToDictionary(c => c.Name));
-            Inputs = new List<InputConnector>(inputs).AsReadOnly();
-            Outputs = new List<OutputConnector>(outputs).AsReadOnly();
+            var connectors = inputs.Concat(outputs);
+            Connectors = new HashSet<string>();
+            foreach (var connector in connectors)
+                if (!Connectors.Add(connector))
+                    throw new System.Exception($"Connector '{connector}' is already a connector");
+
+            Inputs = new List<string>(inputs).AsReadOnly();
+            Outputs = new List<string>(outputs).AsReadOnly();
+            Name = name;
         }
 
-        public abstract void Update();
+        public static void RegisterGate(Gate gate)
+            => Gates[gate.Name] = gate;
+
+        protected abstract IReadOnlyDictionary<string, bool?> Execute(Dictionary<string, bool?> inputs);
+
+        public IReadOnlyDictionary<string, bool?> Execute(params (string name, bool? value)[] inputs)
+        {
+            var dict = new Dictionary<string, bool?>();
+            foreach (var (name, value) in inputs)
+                if (dict.ContainsKey(name))
+                    throw new System.Exception();
+                else
+                    dict.Add(name, value);
+            return Execute(dict);
+        }
     }
 }
