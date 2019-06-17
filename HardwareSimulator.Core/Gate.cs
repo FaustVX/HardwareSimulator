@@ -27,7 +27,7 @@ namespace HardwareSimulator.Core
         }
 
         public static void RegisterGate(Gate gate)
-            => Gates[gate.Name] = gate;
+            => Gates[gate.Name.ToLower()] = gate;
 
         protected abstract IReadOnlyDictionary<string, bool?> Execute(Dictionary<string, bool?> inputs);
 
