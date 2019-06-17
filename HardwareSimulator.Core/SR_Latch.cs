@@ -3,13 +3,12 @@ using System.Collections.Generic;
 
 namespace HardwareSimulator
 {
-    public abstract class SR_Latche : BuiltInGate
+    public sealed class SR_Latche : BuiltInGate
     {
-        protected SR_Latche()
+        public SR_Latche()
             : base(nameof(SR_Latche), new[] { "s", "r" }, new[] { "out", "inv" }, stated: true)
         { }
 
-        public abstract bool Execute(bool a, bool b);
         private bool? _out;
 
         protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)

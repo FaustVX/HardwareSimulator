@@ -4,9 +4,56 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HardwareSimulator"
+        xmlns:core="clr-namespace:HardwareSimulator.Core;assembly=HadwareSimulator.Core"
         mc:Ignorable="d"
+        x:Name="This"
+        DataContext="{Binding ElementName=This, Mode=OneTime}"
         Title="MainWindow" Height="450" Width="800">
     <Grid>
-        
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="3*"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Button Content="Load Gate" Click="LoadGate_Click"/>
+        <ListView x:Name="Gates" Grid.Column="0" Grid.Row="1" ItemsSource="{Binding Path=GatesName}" SelectedItem="{Binding Path=SelectedName, Mode=TwoWay}"/>
+        <Grid Grid.Column="1" Grid.RowSpan="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <ItemsControl Grid.Row="0" ItemsSource="{Binding Path=OutputConnectors}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <CheckBox Content="{Binding Key, Mode=OneWay}" IsChecked="{Binding Value, Mode=OneWay}" IsEnabled="False"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <TextBlock Grid.Row="1" Text="{Binding SelectedGate.Name}" HorizontalAlignment="Center"/>
+            <ItemsControl Grid.Row="2" ItemsSource="{Binding Path=InputConnectors}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                        <!--<UniformGrid Rows="1"/>-->
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ToggleButton Content="{Binding Key, Mode=OneWay}" IsChecked="{Binding Value, Mode=OneWay}" Click="InputConnector_Click"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Grid>
     </Grid>
 </Window>
