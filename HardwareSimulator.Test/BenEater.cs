@@ -11,7 +11,7 @@ namespace HardwareSimulator.Test
         [TestInitialize, TestCleanup]
         public void Initialize()
         {
-            Gate.Gates.Clear();
+            Gate.ClearGates();
             Gate.RegisterGate<Nand>();
             Gate.RegisterGate<And>();
             Gate.RegisterGate<Nor>();

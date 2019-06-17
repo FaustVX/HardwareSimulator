@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
@@ -6,15 +7,17 @@ namespace HardwareSimulator.Core
 {
     public abstract class Gate
     {
-        public static Dictionary<string, Gate> Gates { get; } = new Dictionary<string, Gate>();
+        private static Dictionary<string, Func<Gate>> Gates { get; } = new Dictionary<string, Func<Gate>>();
+        private static Dictionary<string, Gate> NoStatedGates { get; } = new Dictionary<string, Gate>();
 
         public IReadOnlyList<string> Inputs { get; }
         public IReadOnlyList<string> Outputs { get; }
         public string Name { get; }
 
         protected ISet<string> Connectors { get; }
+        public bool IsStated { get; }
 
-        protected Gate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs)
+        protected Gate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, bool stated = false)
         {
             var connectors = inputs.Concat(outputs);
             Connectors = new HashSet<string>();
@@ -25,14 +28,48 @@ namespace HardwareSimulator.Core
             Inputs = new List<string>(inputs).AsReadOnly();
             Outputs = new List<string>(outputs).AsReadOnly();
             Name = name;
+            IsStated = stated;
         }
 
-        public static void RegisterGate(Gate gate)
-            => Gates[gate.Name.ToLower()] = gate;
+        public static void RegisterGate(string name, Func<Gate> gate)
+            => Gates[name.ToLower()] = gate;
+
+        public static void RegisterGate(string name, Gate gate)
+            => NoStatedGates[name.ToLower()] = gate;
 
         public static void RegisterGate<TGate>()
             where TGate : Gate, new()
-            => RegisterGate(new TGate());
+        {
+            var gate = new TGate();
+            if (gate.IsStated)
+                RegisterGate(gate.Name, () => new TGate());
+            else
+                RegisterGate(gate.Name, gate);
+        }
+
+        public static bool TryGetGate(string name, out Gate gate)
+        {
+            if (NoStatedGates.TryGetValue(name, out gate))
+                return true;
+
+            var ok = Gates.TryGetValue(name, out var g);
+            if(ok)
+                gate = g();
+            return ok;
+        }
+
+        protected static Gate GetGate(string name)
+        {
+            if (NoStatedGates.TryGetValue(name, out var gate))
+                return gate;
+            return Gates[name]();
+        }
+
+        public static void ClearGates()
+        {
+            Gates.Clear();
+            NoStatedGates.Clear();
+        }
 
         protected abstract Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs);
 

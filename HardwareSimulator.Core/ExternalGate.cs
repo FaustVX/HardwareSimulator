@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.IO;
+using Connector = System.Linq.IGrouping<string, string>;
 
 namespace HardwareSimulator.Core
 {
@@ -11,7 +12,7 @@ namespace HardwareSimulator.Core
         private static readonly Regex _regexFile, _regexContent, _regexConnectors;
 
         private readonly _Execute _execute;
-        private List<(Gate gate, IGrouping<string, string>[] inputs, IGrouping<string, string>[] outputs)> Parts;
+        private readonly List<(Gate gate, Connector[] inputs, Connector[] outputs)> Parts;
 
         static ExternalGate()
         {
@@ -21,12 +22,24 @@ namespace HardwareSimulator.Core
             _regexConnectors = new Regex("(" + name + @")(?:\[(\d+)\])?[,;]");
         }
 
-        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, DirectoryInfo directory, string[] partsString)
-            : base(name, inputs, outputs)
+        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, bool stated, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
+            : base(name, inputs, outputs, stated)
         {
-            _execute = Parse(directory, partsString);
-            RegisterGate(this);
+            _execute = (t, dic) =>
+            {
+                foreach (var (gate, ins, outs) in t.Parts)
+                    foreach (var result in gate.Execute((ins).Where(input => dic.ContainsKey(input.Key)).SelectMany(input => input.Select(i => (i, dic[input.Key]))).ToArray()))
+                        foreach (var output in outs.Where(output => output.Key == result.Key).SelectMany(output => output))
+                            dic.Add(output, result.Value);
+                return dic.Where(kvp => t.Outputs.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            };
+            RegisterGate(name, IsStated ? () => new ExternalGate(this, Parts.Select(p => p.gate.Name)) : new System.Func<ExternalGate>(()=> this));
+            Parts = parts;
         }
+
+        private ExternalGate(ExternalGate gate, IEnumerable<string> gates)
+            : this(gate.Name, gate.Inputs, gate.Outputs, gate.IsStated, gates.Select(g => (GetGate(g), gate.Parts.First(p => p.gate.Name == g).inputs, gate.Parts.First(p => p.gate.Name == g).outputs)).ToList())
+        { }
 
         protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)
             => _execute(this, inputs);
@@ -42,20 +55,22 @@ namespace HardwareSimulator.Core
             var regex = _regexFile.Match(text);
             var name = regex.Groups[1].Value;
 
-            if (Gates.TryGetValue(name, out var g) && g is ExternalGate gate)
-                return gate;
+            {
+                if (TryGetGate(name, out var g) && g is ExternalGate gate)
+                    return gate;
+            }
 
             var content = _regexContent.Match(regex.Groups[2].Value);
             var ins = _regexConnectors.Matches(content.Groups[1].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
             var outs = _regexConnectors.Matches(content.Groups[2].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
             var parts = content.Groups[3].Value;
-
-            return new ExternalGate(name, ins, outs, new FileInfo(file).Directory, parts.Split("\r\n".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray());
+            var gates = Parse(ins, outs, new FileInfo(file).Directory, parts.Split("\r\n".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()));
+            return new ExternalGate(name, ins, outs, gates.Any(g => g.gate.IsStated), gates);
         }
 
-        private _Execute Parse(DirectoryInfo directory, string[] partsString)
+        private static List<(Gate gate, Connector[] inputs, Connector[] outputs)> Parse(string[] ins, string[] outs, DirectoryInfo directory, IEnumerable<string> partsString)
         {
-            var parts = new List<(Gate gate, IGrouping<string, string>[] inputs, IGrouping<string, string>[] outputs)>(partsString.Length);
+            var parts = new List<(Gate gate, Connector[] inputs, Connector[] outputs)>();
 
             foreach (var part in partsString)
             {
@@ -68,7 +83,7 @@ namespace HardwareSimulator.Core
                     .Select(c => (c.ElementAt(0), c.ElementAt(1)))
                     .ToArray();
 
-                var gate = Gates.TryGetValue(name.ToLower(), out var g) ? g : Parse(Path.Combine(directory.FullName, name + ".hdl"));
+                var gate = TryGetGate(name.ToLower(), out var g) ? g : Parse(Path.Combine(directory.FullName, name + ".hdl"));
 
                 if (gate is null)
                     throw new System.Exception($"Gate {name} must exist");
@@ -91,34 +106,25 @@ namespace HardwareSimulator.Core
                             return 1;
 
                 foreach (var input in t1.inputs)
-                    if (Inputs.Contains(input.Key))
+                    if (ins.Contains(input.Key))
                         return -1;
 
                 foreach (var input in t2.inputs)
-                    if (Inputs.Contains(input.Key))
+                    if (ins.Contains(input.Key))
                         return 1;
 
                 foreach (var output in t1.outputs)
-                    if (Outputs.Contains(output.Key))
+                    if (outs.Contains(output.Key))
                         return -1;
 
                 foreach (var output in t2.outputs)
-                    if (Outputs.Contains(output.Key))
+                    if (outs.Contains(output.Key))
                         return 1;
 
                 return 0;
             });
 
-            Parts = parts;
-
-            return (t, dic) =>
-            {
-                foreach (var (gate, inputs, outputs) in t.Parts)
-                    foreach (var result in gate.Execute((inputs).Where(input => dic.ContainsKey(input.Key)).SelectMany(input => input.Select(i => (i, dic[input.Key]))).ToArray()))
-                        foreach (var output in outputs.Where(output => output.Key == result.Key).SelectMany(output => output))
-                            dic.Add(output, result.Value);
-                return dic.Where(kvp => t.Outputs.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            };
+            return parts;
         }
     }
 }
