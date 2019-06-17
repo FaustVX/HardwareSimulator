@@ -40,19 +40,22 @@ namespace HardwareSimulator.Core
             var regex = _regexFile.Match(text);
             var name = regex.Groups[1].Value;
 
+            if (Gates.TryGetValue(name, out var g) && g is ExternalGate gate)
+                return gate;
+
             var content = _regexContent.Match(regex.Groups[2].Value);
             var ins = _regexConnectors.Matches(content.Groups[1].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
             var outs = _regexConnectors.Matches(content.Groups[2].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
             var parts = content.Groups[3].Value;
 
-            return new ExternalGate(name, ins, outs, Parse(new FileInfo(file).Directory, parts.Split("\r\n".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray()));
+            return new ExternalGate(name, ins, outs, Parse(new FileInfo(file).Directory, ins, outs, parts.Split("\r\n".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()).ToArray()));
         }
 
-        private static _Execute Parse(DirectoryInfo directory, string[] partsString)
+        private static _Execute Parse(DirectoryInfo directory, string[] ins, string[] outs, string[] partsString)
         {
-            var parts = new Dictionary<int, (Gate gate, IGrouping<string, string>[] inputs, IGrouping<string, string>[] outputs)>(partsString.Length);
+            var parts = new List<(Gate gate, IGrouping<string, string>[] inputs, IGrouping<string, string>[] outputs)>(partsString.Length);
 
-            foreach (var part in partsString)
+            foreach (var part in partsString.OrderByDescending(l => l[0]))
             {
                 var name = part.Substring(0, part.IndexOf('('));
                 var connectorsString = part.Substring(part.IndexOf('(')+1);
@@ -68,12 +71,50 @@ namespace HardwareSimulator.Core
                 if (gate is null)
                     throw new System.Exception($"Gate {name} must exist");
 
-                parts.Add(parts.Count, (gate,
+                parts.Add((gate,
                     inputs:  connectors.Where(c => gate.Inputs.Contains(c.Item1)).GroupBy(c => c.Item2, c => c.Item1).ToArray(),
                     outputs: connectors.Where(c => gate.Outputs.Contains(c.Item1)).GroupBy(c => c.Item1, c => c.Item2).ToArray()));
             }
 
-            return null;
+            parts.Sort((t1, t2) =>
+            {
+                foreach (var output in t1.outputs)
+                    foreach (var input in t2.inputs)
+                        if (output.Contains(input.Key))
+                            return -1;
+
+                foreach (var output in t2.outputs)
+                    foreach (var input in t1.inputs)
+                        if (output.Contains(input.Key))
+                            return 1;
+
+                foreach (var input in t1.inputs)
+                    if (ins.Contains(input.Key))
+                        return -1;
+
+                foreach (var input in t2.inputs)
+                    if (ins.Contains(input.Key))
+                        return 1;
+
+                foreach (var output in t1.outputs)
+                    if (outs.Contains(output.Key))
+                        return -1;
+
+                foreach (var output in t2.outputs)
+                    if (outs.Contains(output.Key))
+                        return 1;
+
+                return 0;
+            });
+
+            return dic =>
+            {
+                foreach (var (gate, inputs, outputs) in parts)
+                    foreach (var result in gate.Execute((inputs).Where(input => dic.ContainsKey(input.Key)).SelectMany(input => input.Select(i => (i, dic[input.Key]))).ToArray()))
+                        foreach (var output in outputs.Where(output => output.Key == result.Key).SelectMany(output => output))
+                            dic.Add(output, result.Value);
+                return dic.Where(kvp => outs.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+            };
         }
     }
 }
