@@ -19,7 +19,7 @@ namespace HardwareSimulator.Test
             Gate.RegisterGate<Not>();
             Gate.RegisterGate<Or>();
             Gate.RegisterGate<Xor>();
-            Gate.RegisterGate<SR_Latche>();
+            Gate.RegisterGate<SR_Latch>();
             _latch = ExternalGate.Parse(@"D:\Downloads\nand2tetris\perso\D_Latch.hdl");
         }
 

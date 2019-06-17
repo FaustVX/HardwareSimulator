@@ -28,17 +28,17 @@ namespace HardwareSimulator.Core
             _execute = (t, dic) =>
             {
                 foreach (var (gate, ins, outs) in t.Parts)
-                    foreach (var result in gate.Execute((ins).Where(input => dic.ContainsKey(input.Key)).SelectMany(input => input.Select(i => (i, dic[input.Key]))).ToArray()))
+                    foreach (var result in gate.Execute(ins.Where(input => dic.ContainsKey(input.Key)).SelectMany(input => input.Select(i => (i, dic[input.Key]))).ToArray()))
                         foreach (var output in outs.Where(output => output.Key == result.Key).SelectMany(output => output))
                             dic.Add(output, result.Value);
                 return dic.Where(kvp => t.Outputs.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             };
-            RegisterGate(name, IsStated ? () => new ExternalGate(this, Parts.Select(p => p.gate.Name)) : new System.Func<ExternalGate>(()=> this));
+            RegisterGate(name, IsStated ? () => new ExternalGate(this) : new System.Func<ExternalGate>(()=> this));
             Parts = parts;
         }
 
-        private ExternalGate(ExternalGate gate, IEnumerable<string> gates)
-            : this(gate.Name, gate.Inputs, gate.Outputs, gate.IsStated, gates.Select(g => (GetGate(g), gate.Parts.First(p => p.gate.Name == g).inputs, gate.Parts.First(p => p.gate.Name == g).outputs)).ToList())
+        private ExternalGate(ExternalGate gate)
+            : this(gate.Name, gate.Inputs, gate.Outputs, gate.IsStated, gate.Parts.Select(p => (GetGate(p.gate.Name), p.inputs, p.outputs)).ToList())
         { }
 
         protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)

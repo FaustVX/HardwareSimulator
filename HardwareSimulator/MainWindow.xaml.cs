@@ -23,7 +23,7 @@ namespace HardwareSimulator
             Gate.RegisterGate<Not>();
             Gate.RegisterGate<Or>();
             Gate.RegisterGate<Xor>();
-            Gate.RegisterGate<SR_Latche>();
+            Gate.RegisterGate<SR_Latch>();
         }
 
         public IEnumerable<string> GatesName { get; } = Gate.GatesName;
@@ -34,7 +34,7 @@ namespace HardwareSimulator
             get { return _selectedGate; }
             set
             {
-                if (_selectedGate?.Name == value.Name)
+                if (value is null || _selectedGate?.Name == value.Name)
                     return;
                 _selectedGate = value;
                 SetGate();
@@ -110,8 +110,7 @@ namespace HardwareSimulator
 
         private void ExecuteGate()
         {
-            var result = SelectedGate.Execute(InputConnectors.Select(i => (i.Key, i.Value)).ToArray());
-            foreach (var r in result)
+            foreach (var r in SelectedGate.Execute(InputConnectors.Select(i => (i.Key, i.Value)).ToArray()))
                 if (OutputConnectors.ContainsKey(r.Key))
                     OutputConnectors[r.Key] = r.Value;
             ResetDataContext();

@@ -3,19 +3,19 @@ using System.Collections.Generic;
 
 namespace HardwareSimulator
 {
-    public sealed class SR_Latche : BuiltInGate
+    public sealed class SR_Latch : BuiltInGate
     {
-        public SR_Latche()
-            : base(nameof(SR_Latche), new[] { "s", "r" }, new[] { "out", "inv" }, stated: true)
+        public SR_Latch()
+            : base(nameof(SR_Latch), new[] { "s", "r" }, new[] { "out", "inv" }, stated: true)
         { }
 
-        private bool? _out;
+        private bool? _out = false;
 
         protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)
         {
             var s = inputs["s"];
             var r = inputs["r"];
-            if (s.HasValue && r.HasValue || s.Value && r.Value)
+            if (s.HasValue && r.HasValue && !(s.Value && r.Value))
             {
                 if (s.Value)
                     _out = true;
