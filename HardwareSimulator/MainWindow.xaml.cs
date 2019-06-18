@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Controls.Primitives;
+using System.Windows.Controls;
 using HardwareSimulator.Core;
 
 namespace HardwareSimulator
@@ -34,7 +34,7 @@ namespace HardwareSimulator
             get { return _selectedGate; }
             set
             {
-                if (value is null || _selectedGate?.Name == value.Name)
+                if (value is null)
                     return;
                 _selectedGate = value;
                 SetGate();
@@ -78,11 +78,13 @@ namespace HardwareSimulator
 
         public Dictionary<string, bool?> InputConnectors { get; }
         public Dictionary<string, bool?> OutputConnectors { get; }
+        public Dictionary<string, bool?> InternalConnectors { get; }
 
         public MainWindow()
         {
             InputConnectors = new Dictionary<string, bool?>();
             OutputConnectors = new Dictionary<string, bool?>();
+            InternalConnectors = new Dictionary<string, bool?>();
             InitializeComponent();
         }
 
@@ -94,8 +96,16 @@ namespace HardwareSimulator
             {
                 Filter = "HDL Files|*.hdl",
             };
+
             if (dialog.ShowDialog(this) ?? false)
-                SelectedGate = ExternalGate.Parse(dialog.FileName);
+                try
+                {
+                    SelectedGate = ExternalGate.Parse(dialog.FileName);
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show(ex.Message, $"Can't open {System.IO.Path.GetFileName(dialog.FileName)}", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
         }
 
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
@@ -103,16 +113,29 @@ namespace HardwareSimulator
 
         private void InputConnector_Click(object sender, RoutedEventArgs e)
         {
-            var button = sender as ToggleButton;
-            InputConnectors[button.Content.ToString()] = button.IsChecked;
+            switch (sender)
+            {
+                case CheckBox btn:
+                    InputConnectors[(btn.Content as Button).Content.ToString()] = btn.IsChecked;
+                    break;
+                case Button button:
+                    InputConnectors[button.Content.ToString()] ^= true;
+                    break;
+                default:
+                    return;
+            }
             ExecuteGate();
+            e.Handled = true;
         }
 
         private void ExecuteGate()
         {
+            InternalConnectors.Clear();
             foreach (var r in SelectedGate.Execute(InputConnectors.Select(i => (i.Key, i.Value)).ToArray()))
                 if (OutputConnectors.ContainsKey(r.Key))
                     OutputConnectors[r.Key] = r.Value;
+                else if (!InputConnectors.ContainsKey(r.Key))
+                    InternalConnectors[r.Key] = r.Value;
             ResetDataContext();
         }
 
