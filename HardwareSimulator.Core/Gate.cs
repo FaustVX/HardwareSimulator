@@ -9,7 +9,6 @@ namespace HardwareSimulator.Core
     {
         private static Dictionary<string, Func<Gate>> Gates { get; } = new Dictionary<string, Func<Gate>>();
         private static Dictionary<string, Gate> NoStatedGates { get; } = new Dictionary<string, Gate>();
-        public static IEnumerable<string> GatesName { get; } = NoStatedGates.Select(g => g.Key).Concat(Gates.Select(g => g.Key));
 
         public IReadOnlyList<string> Inputs { get; }
         public IReadOnlyList<string> Outputs { get; }

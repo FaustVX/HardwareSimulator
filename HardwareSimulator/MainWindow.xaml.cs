@@ -26,8 +26,6 @@ namespace HardwareSimulator
             Gate.RegisterGate<SR_Latch>();
         }
 
-        public IEnumerable<string> GatesName { get; } = Gate.GatesName;
-
         private Gate _selectedGate;
         public Gate SelectedGate
         {
