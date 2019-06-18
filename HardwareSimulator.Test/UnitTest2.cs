@@ -27,14 +27,6 @@ namespace HardwareSimulator.Test
         }
 
         [TestMethod]
-        public void TestMethodNot16()
-        {
-            Not16 = ExternalGate.Parse(@"D:\Downloads\nand2tetris\projects\01\Not16.hdl");
-            Assert.IsNotNull(Not16);
-            Assert.AreEqual("Not16", Not16.Name, false);
-        }
-
-        [TestMethod]
         public void TestMethodAnd()
         {
             And = ExternalGate.Parse(@"D:\Downloads\nand2tetris\projects\01\And.hdl");

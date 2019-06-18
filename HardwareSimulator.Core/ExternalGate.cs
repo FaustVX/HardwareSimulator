@@ -38,7 +38,7 @@ namespace HardwareSimulator.Core
             }
         }
         
-        private static readonly Regex _regexFile, _regexContent, _regexConnectors;
+        private static readonly Regex _regexFile, _regexContent, _regexConnectors, _regexPart;
         
         private readonly List<(Gate gate, Connector[] inputs, Connector[] outputs)> Parts;
 
@@ -47,7 +47,9 @@ namespace HardwareSimulator.Core
             var name = "[a-zA-Z_][a-zA-Z0-9_]*";
             _regexFile = new Regex(@"^CHIP\s+(" + name + @")\s*\n*{\r*\n*((?:.*\n)*?)\r*\n*}$", RegexOptions.Multiline);
             _regexContent = new Regex(@"IN\s+(.*?;).*?OUT\s+(.*?;).*?PARTS:\r?\n?(.*)", RegexOptions.Singleline);
-            _regexConnectors = new Regex("(" + name + @")(?:\[(\d+)\])?[,;]");
+            //_regexConnectors = new Regex("(" + name + @")(?:\[(\d+)\])?[,;]");
+            _regexConnectors = new Regex("(" + name + ")[,;]");
+            _regexPart = new Regex(name + @"\s*\(\s*(?:" + name + @"\s*=\s*" + name + @"\s*,?\s*)+\)\s*;");
         }
 
         private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
@@ -83,6 +85,10 @@ namespace HardwareSimulator.Core
             text = text.Replace("\r\n", "\n");
 
             var regex = _regexFile.Match(text);
+
+            if (!regex.Success)
+                throw new System.Exception($"{Path.GetFileName(file)} can't be parsed");
+
             var name = regex.Groups[1].Value;
 
             if (name != Path.GetFileNameWithoutExtension(file))
@@ -103,6 +109,9 @@ namespace HardwareSimulator.Core
 
             foreach (var part in partsString)
             {
+                if (!_regexPart.IsMatch(part))
+                    throw new System.Exception($"'{part}' is an invalid part call");
+
                 var name = part.Substring(0, part.IndexOf('('));
 
                 var gate = TryGetGate(name.ToLower(), out var g) ? g : Parse(Path.Combine(directory.FullName, name + ".hdl"));
@@ -117,6 +126,19 @@ namespace HardwareSimulator.Core
                         .Select(s => s.Trim()))
                     .Select(c => (c.ElementAt(0), c.ElementAt(1)))
                     .ToArray();
+
+                try
+                {
+                    var conn = connectors.First(c => !gate.Inputs.Contains(c.Item1) && !gate.Outputs.Contains(c.Item1));
+                    throw new System.Exception($"'{conn.Item1}' isn't a connector in '{name}' gate");
+                }
+                catch (System.InvalidOperationException)
+                {
+                    ;
+                }
+
+                if (!connectors.All(c => gate.Inputs.Contains(c.Item1) || gate.Outputs.Contains(c.Item1)))
+                    throw new System.Exception();
 
                 parts.Add((gate,
                     inputs:  connectors.Where(c => gate.Inputs.Contains(c.Item1)).GroupBy(c => c.Item2, c => c.Item1).ToArray(),
