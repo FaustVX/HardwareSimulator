@@ -6,12 +6,40 @@ using Connector = System.Linq.IGrouping<string, string>;
 
 namespace HardwareSimulator.Core
 {
-    public sealed class ExternalGate : Gate
+    public class ExternalGate : Gate
     {
-        private delegate Dictionary<string, bool?> _Execute(ExternalGate @this, Dictionary<string, bool?> inputs);
-        private static readonly Regex _regexFile, _regexContent, _regexConnectors;
+        private sealed class StatedGate : ExternalGate
+        {
+            public StatedGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
+                : base(name, inputs, outputs, true, parts)
+            {
+                InternalConnectors = new Dictionary<string, bool?>();
+            }
 
-        private readonly _Execute _execute;
+            public StatedGate(ExternalGate gate)
+                : this(gate.Name, gate.Inputs, gate.Outputs, gate.Parts.Select(p => (GetGate(p.gate.Name), p.inputs, p.outputs)).ToList())
+            { }
+
+            public Dictionary<string, bool?> InternalConnectors { get; }
+
+            protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)
+            {
+                Combine(inputs, InternalConnectors, false);
+                var executed = base.Execute(inputs);
+                Combine(InternalConnectors, executed, true);
+                return executed;
+            }
+
+            public static void Combine<Tkey, TValue>(Dictionary<Tkey, TValue> source, IReadOnlyDictionary<Tkey, TValue> others, bool replace)
+            {
+                foreach (var item in others)
+                    if (replace || !source.ContainsKey(item.Key))
+                        source[item.Key] = item.Value;
+            }
+        }
+        
+        private static readonly Regex _regexFile, _regexContent, _regexConnectors;
+        
         private readonly List<(Gate gate, Connector[] inputs, Connector[] outputs)> Parts;
 
         static ExternalGate()
@@ -22,27 +50,29 @@ namespace HardwareSimulator.Core
             _regexConnectors = new Regex("(" + name + @")(?:\[(\d+)\])?[,;]");
         }
 
+        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
+            : this(name, inputs, outputs, false, parts)
+        { }
+
         private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, bool stated, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
             : base(name, inputs, outputs, stated)
         {
-            _execute = (t, dic) =>
-            {
-                foreach (var (gate, ins, outs) in t.Parts)
-                    foreach (var result in gate.Execute(ins.Where(input => dic.ContainsKey(input.Key)).SelectMany(input => input.Select(i => (i, dic[input.Key]))).ToArray()))
-                        foreach (var output in outs.Where(output => output.Key == result.Key).SelectMany(output => output))
-                            dic.Add(output, result.Value);
-                return dic.Where(kvp => t.Outputs.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-            };
-            RegisterGate(name, IsStated ? () => new ExternalGate(this) : new System.Func<ExternalGate>(()=> this));
             Parts = parts;
+
+            if (IsStated)
+                RegisterGate(name, () => new StatedGate(this));
+            else
+                RegisterGate(name, this);
         }
 
-        private ExternalGate(ExternalGate gate)
-            : this(gate.Name, gate.Inputs, gate.Outputs, gate.IsStated, gate.Parts.Select(p => (GetGate(p.gate.Name), p.inputs, p.outputs)).ToList())
-        { }
-
         protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)
-            => _execute(this, inputs);
+        {
+            foreach (var (gate, ins, outs) in Parts)
+                foreach (var result in gate.Execute(ins.Where(input => inputs.ContainsKey(input.Key)).SelectMany(input => input.Select(i => (i, inputs[input.Key]))).ToArray()))
+                    foreach (var output in outs.Where(output => output.Key == result.Key).SelectMany(output => output))
+                        inputs[output] = result.Value;
+            return inputs;//.Where(kvp => t.Outputs.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
 
         public static ExternalGate Parse(string file)
         {
@@ -55,17 +85,16 @@ namespace HardwareSimulator.Core
             var regex = _regexFile.Match(text);
             var name = regex.Groups[1].Value;
 
-            {
-                if (TryGetGate(name, out var g) && g is ExternalGate gate)
-                    return gate;
-            }
-
+            if (name != Path.GetFileNameWithoutExtension(file))
+                throw new System.Exception($"Chip name not equals the file name. Actual:'{name}', expected:'{Path.GetFileNameWithoutExtension(file)}'");
+            
             var content = _regexContent.Match(regex.Groups[2].Value);
             var ins = _regexConnectors.Matches(content.Groups[1].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
             var outs = _regexConnectors.Matches(content.Groups[2].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
             var parts = content.Groups[3].Value;
             var gates = Parse(ins, outs, new FileInfo(file).Directory, parts.Split("\r\n".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()));
-            return new ExternalGate(name, ins, outs, gates.Any(g => g.gate.IsStated), gates);
+
+            return gates.Any(g => g.gate.IsStated) ? new StatedGate(name, ins, outs, gates) : new ExternalGate(name, ins, outs, gates);
         }
 
         private static List<(Gate gate, Connector[] inputs, Connector[] outputs)> Parse(string[] ins, string[] outs, DirectoryInfo directory, IEnumerable<string> partsString)
@@ -75,6 +104,12 @@ namespace HardwareSimulator.Core
             foreach (var part in partsString)
             {
                 var name = part.Substring(0, part.IndexOf('('));
+
+                var gate = TryGetGate(name.ToLower(), out var g) ? g : Parse(Path.Combine(directory.FullName, name + ".hdl"));
+
+                if (gate is null)
+                    throw new System.Exception($"Gate {name} must exist");
+
                 var connectorsString = part.Substring(part.IndexOf('(')+1);
                 connectorsString = connectorsString.Substring(0, connectorsString.IndexOf(");"));
                 var connectors = connectorsString.Split(',')
@@ -83,11 +118,6 @@ namespace HardwareSimulator.Core
                     .Select(c => (c.ElementAt(0), c.ElementAt(1)))
                     .ToArray();
 
-                var gate = TryGetGate(name.ToLower(), out var g) ? g : Parse(Path.Combine(directory.FullName, name + ".hdl"));
-
-                if (gate is null)
-                    throw new System.Exception($"Gate {name} must exist");
-
                 parts.Add((gate,
                     inputs:  connectors.Where(c => gate.Inputs.Contains(c.Item1)).GroupBy(c => c.Item2, c => c.Item1).ToArray(),
                     outputs: connectors.Where(c => gate.Outputs.Contains(c.Item1)).GroupBy(c => c.Item1, c => c.Item2).ToArray()));
@@ -95,33 +125,59 @@ namespace HardwareSimulator.Core
 
             parts.Sort((t1, t2) =>
             {
-                foreach (var output in t1.outputs)
-                    foreach (var input in t2.inputs)
-                        if (output.Contains(input.Key))
-                            return -1;
+                var t1Int2 = AInB(t1, t2);
+                var t2Int1 = AInB(t2, t1);
 
-                foreach (var output in t2.outputs)
-                    foreach (var input in t1.inputs)
-                        if (output.Contains(input.Key))
-                            return 1;
+                if (t1Int2 && !t2Int1)
+                    return -1;
 
-                foreach (var input in t1.inputs)
-                    if (ins.Contains(input.Key))
-                        return -1;
+                if (t2Int1 && !t1Int2)
+                    return 1;
 
-                foreach (var input in t2.inputs)
-                    if (ins.Contains(input.Key))
-                        return 1;
+                var inputsInT1 = InputsInA(t1);
+                var inputsInT2 = InputsInA(t2);
 
-                foreach (var output in t1.outputs)
-                    if (outs.Contains(output.Key))
-                        return -1;
+                if (inputsInT1 && !inputsInT2)
+                    return -1;
 
-                foreach (var output in t2.outputs)
-                    if (outs.Contains(output.Key))
-                        return 1;
+                if (inputsInT2 && !inputsInT1)
+                    return 1;
+
+                var t1InOutputs = AInOutputs(t1);
+                var t2InOutputs = AInOutputs(t2);
+
+                if (t1InOutputs && !t2InOutputs)
+                    return 1;
+
+                if (t2InOutputs && !t1InOutputs)
+                    return -1;
 
                 return 0;
+
+                bool AInB((Gate, Connector[] inputs, Connector[] outputs) a, (Gate, Connector[] inputs, Connector[] outputs) b)
+                {
+                    foreach (var output in a.outputs)
+                        foreach (var input in b.inputs)
+                            if (output.Contains(input.Key))
+                                return true;
+                    return false;
+                }
+
+                bool InputsInA((Gate, Connector[] inputs, Connector[] outputs) a)
+                {
+                    foreach (var input in a.inputs)
+                        if (ins.Contains(input.Key))
+                            return true;
+                    return false;
+                }
+
+                bool AInOutputs((Gate, Connector[] inputs, Connector[] outputs) a)
+                {
+                    foreach (var output in a.outputs)
+                        if (outs.Contains(output.Key))
+                            return true;
+                    return false;
+                }
             });
 
             return parts;
