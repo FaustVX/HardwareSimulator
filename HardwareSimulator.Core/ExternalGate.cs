@@ -69,10 +69,14 @@ namespace HardwareSimulator.Core
 
         protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)
         {
+            inputs["true"] = true;
+            inputs["false"] = false;
             foreach (var (gate, ins, outs) in Parts)
                 foreach (var result in gate.Execute(ins.Where(input => inputs.ContainsKey(input.Key)).SelectMany(input => input.Select(i => (i, inputs[input.Key]))).ToArray()))
                     foreach (var output in outs.Where(output => output.Key == result.Key).SelectMany(output => output))
                         inputs[output] = result.Value;
+            inputs.Remove("true");
+            inputs.Remove("false");
             return inputs;//.Where(kvp => t.Outputs.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
