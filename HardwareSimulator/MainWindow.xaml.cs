@@ -84,6 +84,8 @@ namespace HardwareSimulator
             OutputConnectors = new Dictionary<string, bool?>();
             InternalConnectors = new Dictionary<string, bool?>();
             InitializeComponent();
+
+            Loaded += LoadGate_Click;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -99,6 +101,7 @@ namespace HardwareSimulator
                 try
                 {
                     SelectedGate = ExternalGate.Parse(dialog.FileName);
+                    Title = System.IO.Path.GetFileName(dialog.FileName);
                 }
                 catch (System.Exception ex)
                 {
