@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HardwareSimulator", "Hardwa
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Components", "Components", "{9157F2CF-9079-4F96-9B32-08166C1B7BBA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BasicComponent", "Nand\BasicComponent.csproj", "{CA29459C-F934-411B-BE26-E50E6A6EE920}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BasicComponent", "Components\BasicComponent.csproj", "{CA29459C-F934-411B-BE26-E50E6A6EE920}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HardwareSimulator.Core", "HardwareSimulator.Core\HardwareSimulator.Core.csproj", "{907EE2EB-A1D4-4D31-92D8-9423A96C7E10}"
 EndProject
