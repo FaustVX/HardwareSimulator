@@ -45,7 +45,7 @@ namespace HardwareSimulator.Core
         static ExternalGate()
         {
             var name = "[a-zA-Z_][a-zA-Z0-9_]*";
-            var array = @"(?:\[(0*[1-9]|0*1[0-6]?)\])";
+            var array = @"(?:\[([1-9]|1[0-6]?)\])";
             var array0 = @"(?:\[(0*[0-9]|0*1[0-6]?)\])";
             _regexFile = new Regex(@"^CHIP\s+(" + name + @")\s*\n*{\r*\n*((?:.*\n)*?)\r*\n*}$", RegexOptions.Multiline);
             _regexContent = new Regex(@"IN\s+(.*?;).*?OUT\s+(.*?;).*?PARTS:\r?\n?(.*)", RegexOptions.Singleline);
@@ -73,13 +73,44 @@ namespace HardwareSimulator.Core
         {
             inputs["true"] = true;
             inputs["false"] = false;
+
             foreach (var (gate, ins, outs) in Parts)
-                foreach (var result in gate.Execute(ins.Where(input => inputs.ContainsKey(input.Key)).SelectMany(input => input.Select(i => (i, inputs[input.Key]))).ToArray()))
-                    foreach (var output in outs.Where(output => output.Key == result.Key).SelectMany(output => output))
-                        inputs[output] = result.Value;
+                ProcessResults(gate.Execute(GetInputs(ins).ToArray()), outs);
+
             inputs.Remove("true");
             inputs.Remove("false");
             return inputs;//.Where(kvp => t.Outputs.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+            IEnumerable<(string name, DataValue? value)> GetInputs(Connector[] ins)
+            {
+                foreach (var input in ins)
+                {
+                    if(inputs.ContainsKey(input.Key))
+                    {
+                        foreach (var i in input)
+                        {
+                            yield return (i, inputs[input.Key]);
+                        }
+                    }
+                }
+            }
+
+            void ProcessResults(IReadOnlyDictionary<string, DataValue?> results, Connector[] outs)
+            {
+                foreach (var result in results)
+                {
+                    foreach (var output in outs)
+                    {
+                        if(output.Key==result.Key)
+                        {
+                            foreach (var o in output)
+                            {
+                                inputs[o] = result.Value;
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         public static ExternalGate Parse(string file)
