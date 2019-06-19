@@ -12,7 +12,7 @@ namespace HardwareSimulator
         public bool Execute(bool a)
             => !a;
 
-        protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)
-            => new Dictionary<string, bool?>() { ["out"] = inputs["in"].HasValue ? Execute(inputs["in"].Value) : new bool?() };
+        protected override Dictionary<string, DataValue?> Execute(Dictionary<string, DataValue?> inputs)
+            => new Dictionary<string, DataValue?>() { ["out"] = inputs["in"].HasValue ? Execute(inputs["in"].Value) : new DataValue?() };
     }
 }

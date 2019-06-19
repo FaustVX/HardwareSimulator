@@ -74,15 +74,15 @@ namespace HardwareSimulator
             }
         }
 
-        public Dictionary<string, bool?> InputConnectors { get; }
-        public Dictionary<string, bool?> OutputConnectors { get; }
-        public Dictionary<string, bool?> InternalConnectors { get; }
+        public Dictionary<string, DataValue?> InputConnectors { get; }
+        public Dictionary<string, DataValue?> OutputConnectors { get; }
+        public Dictionary<string, DataValue?> InternalConnectors { get; }
 
         public MainWindow()
         {
-            InputConnectors = new Dictionary<string, bool?>();
-            OutputConnectors = new Dictionary<string, bool?>();
-            InternalConnectors = new Dictionary<string, bool?>();
+            InputConnectors = new Dictionary<string, DataValue?>();
+            OutputConnectors = new Dictionary<string, DataValue?>();
+            InternalConnectors = new Dictionary<string, DataValue?>();
             InitializeComponent();
 
             Loaded += LoadGate_Click;

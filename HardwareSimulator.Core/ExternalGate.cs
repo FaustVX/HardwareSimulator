@@ -13,16 +13,16 @@ namespace HardwareSimulator.Core
             public StatedGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
                 : base(name, inputs, outputs, true, parts)
             {
-                InternalConnectors = new Dictionary<string, bool?>();
+                InternalConnectors = new Dictionary<string, DataValue?>();
             }
 
             public StatedGate(ExternalGate gate)
                 : this(gate.Name, gate.Inputs, gate.Outputs, gate.Parts.Select(p => (GetGate(p.gate.Name), p.inputs, p.outputs)).ToList())
             { }
 
-            public Dictionary<string, bool?> InternalConnectors { get; }
+            public Dictionary<string, DataValue?> InternalConnectors { get; }
 
-            protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)
+            protected override Dictionary<string, DataValue?> Execute(Dictionary<string, DataValue?> inputs)
             {
                 Combine(inputs, InternalConnectors, false);
                 var executed = base.Execute(inputs);
@@ -67,7 +67,7 @@ namespace HardwareSimulator.Core
                 RegisterGate(name, this);
         }
 
-        protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)
+        protected override Dictionary<string, DataValue?> Execute(Dictionary<string, DataValue?> inputs)
         {
             inputs["true"] = true;
             inputs["false"] = false;

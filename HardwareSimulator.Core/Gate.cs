@@ -72,11 +72,11 @@ namespace HardwareSimulator.Core
             NoStatedGates.Clear();
         }
 
-        protected abstract Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs);
+        protected abstract Dictionary<string, DataValue?> Execute(Dictionary<string, DataValue?> inputs);
 
-        public IReadOnlyDictionary<string, bool?> Execute(params (string name, bool? value)[] inputs)
+        public IReadOnlyDictionary<string, DataValue?> Execute(params (string name, DataValue? value)[] inputs)
         {
-            var dict = new Dictionary<string, bool?>();
+            var dict = new Dictionary<string, DataValue?>();
             foreach (var (name, value) in inputs)
                 if (!Inputs.Contains(name))
                     throw new System.Exception($"'{name}' is not an input Connector");
@@ -91,7 +91,7 @@ namespace HardwareSimulator.Core
             dict = Execute(dict);
             foreach (var o in Outputs.Where(o => !dict.ContainsKey(o)))
                 dict.Add(o, null);
-            return new ReadOnlyDictionary<string, bool?>(dict);
+            return new ReadOnlyDictionary<string, DataValue?>(dict);
         }
     }
 }

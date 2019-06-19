@@ -9,9 +9,9 @@ namespace HardwareSimulator
             : base(nameof(SR_Latch), new[] { "s", "r" }, new[] { "out", "inv" }, stated: true)
         { }
 
-        private bool? _out = false;
+        private DataValue? _out = false;
 
-        protected override Dictionary<string, bool?> Execute(Dictionary<string, bool?> inputs)
+        protected override Dictionary<string, DataValue?> Execute(Dictionary<string, DataValue?> inputs)
         {
             var s = inputs["s"];
             var r = inputs["r"];
@@ -25,7 +25,7 @@ namespace HardwareSimulator
             else
                 _out = null;
 
-            return new Dictionary<string, bool?>(2)
+            return new Dictionary<string, DataValue?>(2)
             {
                 ["out"] = _out,
                 ["inv"] = _out.HasValue ? !_out.Value : _out

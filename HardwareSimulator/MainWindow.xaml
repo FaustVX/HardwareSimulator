@@ -4,10 +4,15 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:HardwareSimulator"
+        xmlns:conv="clr-namespace:HardwareSimulator.Converters"
         mc:Ignorable="d"
         x:Name="This"
         DataContext="{Binding ElementName=This, Mode=OneTime}"
         Title="MainWindow" Height="450" Width="800">
+    <Window.Resources>
+        <conv:DataValueToBoolConverter x:Key="DVToBool"/>
+    </Window.Resources>
+    
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="3*"/>
@@ -35,7 +40,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <CheckBox Content="{Binding Key, Mode=OneWay}" IsChecked="{Binding Value, Mode=OneWay}" IsEnabled="False"/>
+                            <CheckBox Content="{Binding Key, Mode=OneWay}" IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" IsEnabled="False"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -47,7 +52,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <CheckBox IsChecked="{Binding Value, Mode=OneWay}" Click="InputConnector_Click" HorizontalContentAlignment="Stretch">
+                            <CheckBox IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" Click="InputConnector_Click" HorizontalContentAlignment="Stretch">
                                 <CheckBox.Content>
                                     <Button Content="{Binding Key, Mode=OneTime}" PreviewMouseDown="InputConnector_Click" PreviewMouseUp="InputConnector_Click"/>
                                 </CheckBox.Content>
@@ -68,7 +73,7 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <CheckBox Content="{Binding Key, Mode=OneWay}" IsChecked="{Binding Value, Mode=OneWay}" IsEnabled="False"/>
+                    <CheckBox Content="{Binding Key, Mode=OneWay}" IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" IsEnabled="False"/>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
