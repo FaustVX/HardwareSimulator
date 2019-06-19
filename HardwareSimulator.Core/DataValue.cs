@@ -21,17 +21,21 @@ namespace HardwareSimulator.Core
         [FieldOffset(1)]
         public readonly byte UpperByte;
 
+        public static bool GetAt(in DataValue data, int bitPos)
+            => ((data.Value >> bitPos) & 0b1) == 0b1;
+
+        public static DataValue SetAt(in DataValue data, int bitPos, bool value)
+            => (ushort)unchecked(value ? (data.Value | (ushort)(0b1 << bitPos)) : (data.Value & (ushort) ~(0b1 << bitPos)));
+
         public DataValue(ushort value)
+            : this()
         {
-            LowerBool = UpperBool = false;
-            LowerByte = UpperByte = 0;
             Value = value;
         }
 
         public DataValue(byte upper, byte lower)
+            : this()
         {
-            LowerBool = UpperBool = false;
-            Value = 0;
             LowerByte = lower;
             UpperByte = upper;
         }

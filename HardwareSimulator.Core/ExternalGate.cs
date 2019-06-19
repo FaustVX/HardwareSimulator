@@ -45,11 +45,13 @@ namespace HardwareSimulator.Core
         static ExternalGate()
         {
             var name = "[a-zA-Z_][a-zA-Z0-9_]*";
+            var array = @"(?:\[(0*[1-9]|0*1[0-6]?)\])";
+            var array0 = @"(?:\[(0*[0-9]|0*1[0-6]?)\])";
             _regexFile = new Regex(@"^CHIP\s+(" + name + @")\s*\n*{\r*\n*((?:.*\n)*?)\r*\n*}$", RegexOptions.Multiline);
             _regexContent = new Regex(@"IN\s+(.*?;).*?OUT\s+(.*?;).*?PARTS:\r?\n?(.*)", RegexOptions.Singleline);
-            //_regexConnectors = new Regex("(" + name + @")(?:\[(\d+)\])?[,;]");
-            _regexConnectors = new Regex("(" + name + ")[,;]");
-            _regexPart = new Regex(name + @"\s*\(\s*(?:" + name + @"\s*=\s*" + name + @"\s*,?\s*)+\)\s*;");
+            _regexConnectors = new Regex("(" + name + ")" + array + "?[,;]");
+            //_regexConnectors = new Regex("(" + name + ")[,;]");
+            _regexPart = new Regex(name + @"\s*\(\s*(?:" + name + array0 + @"?\s*=\s*" + name + array0 + @"?\s*,?\s*)+\)\s*;");
         }
 
         private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)

@@ -44,5 +44,24 @@ namespace HardwareSimulator.Test
             Assert.AreEqual(0x01, data.LowerByte);
             Assert.AreEqual(0x00, data.UpperByte);
         }
+
+        [TestMethod]
+        public void GetBit()
+        {
+            DataValue value = 0b0000_0100;
+            Assert.IsFalse(DataValue.GetAt(value, 1));
+            Assert.IsTrue(DataValue.GetAt(value, 2));
+            Assert.IsFalse(DataValue.GetAt(value, 3));
+
+            value = DataValue.SetAt(value, 5, true);
+            Assert.IsFalse(DataValue.GetAt(value, 4));
+            Assert.IsTrue(DataValue.GetAt(value, 5));
+            Assert.IsFalse(DataValue.GetAt(value, 6));
+
+            value = DataValue.SetAt(value, 5, false);
+            Assert.IsFalse(DataValue.GetAt(value, 4));
+            Assert.IsFalse(DataValue.GetAt(value, 5));
+            Assert.IsFalse(DataValue.GetAt(value, 6));
+        }
     }
 }
