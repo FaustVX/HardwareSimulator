@@ -1,8 +1,15 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Linq;
 using System.IO;
 using Connector = System.Linq.IGrouping<string, string>;
+#if Computer8Bits
+using DataValue = HardwareSimulator.Core.DataValue8Bits;
+using InnerType = System.Byte;
+#elif Computer16Bits
+using DataValue = HardwareSimulator.Core.DataValue16Bits;
+using InnerType = System.UInt16;
+#endif
 
 namespace HardwareSimulator.Core
 {
@@ -123,9 +130,9 @@ namespace HardwareSimulator.Core
                                 if (split.Length == 1)
                                     inputs[o] = result.Value;
                                 else if (split.Length == 2 && int.TryParse(split[1], out var i))
-                                    inputs[name] = DataValue.SetAt(inputs.TryGetValue(name, out var value) ? (value?.Value ?? 0) : ushort.MinValue, i, result.Value.Value);
+                                    inputs[name] = DataValue.SetAt(inputs.TryGetValue(name, out var value) ? (value?.Value ?? 0) : InnerType.MinValue, i, result.Value.Value);
                                 else if (split.Length == 3 && int.TryParse(split[1], out var start) && int.TryParse(split[2], out var end) && end > start)
-                                    inputs[name] = (inputs.TryGetValue(name, out var value) ? value : 0) | (ushort)(result.Value.Value.Splice(end-start) << start);
+                                    inputs[name] = (inputs.TryGetValue(name, out var value) ? value : 0) | (InnerType)(result.Value.Value.Splice(end-start) << start);
                             }
                         }
                     }

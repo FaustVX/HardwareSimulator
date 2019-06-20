@@ -1,7 +1,13 @@
-﻿using HardwareSimulator.Core;
-using System;
+﻿using System;
 using System.Globalization;
 using System.Windows.Data;
+#if Computer8Bits
+using DataValue = HardwareSimulator.Core.DataValue8Bits;
+using InnerType = System.Byte;
+#elif Computer16Bits
+using DataValue = HardwareSimulator.Core.DataValue16Bits;
+using InnerType = System.UInt16;
+#endif
 
 namespace HardwareSimulator.Converters
 {
@@ -13,17 +19,7 @@ namespace HardwareSimulator.Converters
                 return null;
 
             if(value is DataValue data && targetType == typeof(bool?))
-                switch (parameter)
-                {
-                    case nameof(DataValue.UpperBool):
-                        return data.UpperBool;
-                    case nameof(DataValue.LowerBool):
-                        return data.LowerBool;
-                    case null:
-                        return (bool)data;
-                    default:
-                        throw new ArgumentOutOfRangeException(nameof(parameter));
-                }
+                return (bool)data;
             throw new NotImplementedException();
         }
 

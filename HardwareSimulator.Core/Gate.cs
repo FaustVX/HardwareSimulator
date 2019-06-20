@@ -2,6 +2,13 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+#if Computer8Bits
+using DataValue = HardwareSimulator.Core.DataValue8Bits;
+using InnerType = System.Byte;
+#elif Computer16Bits
+using DataValue = HardwareSimulator.Core.DataValue16Bits;
+using InnerType = System.UInt16;
+#endif
 
 namespace HardwareSimulator.Core
 {

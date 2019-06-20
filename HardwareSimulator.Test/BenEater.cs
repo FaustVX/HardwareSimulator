@@ -1,5 +1,12 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using HardwareSimulator.Core;
+#if Computer8Bits
+using DataValue = HardwareSimulator.Core.DataValue8Bits;
+using InnerType = System.Byte;
+#elif Computer16Bits
+using DataValue = HardwareSimulator.Core.DataValue16Bits;
+using InnerType = System.UInt16;
+#endif
 
 namespace HardwareSimulator.Test
 {

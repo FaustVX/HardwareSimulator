@@ -4,28 +4,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
+using DataValue = HardwareSimulator.Core.DataValue8Bits;
+using InnerValue = System.Byte;
+
 namespace HardwareSimulator.Core
 {
     [StructLayout(LayoutKind.Explicit)]
-    public readonly struct DataValue : IEquatable<DataValue>, IEnumerable<(int pos, int pow, bool value)>
+    public readonly struct DataValue8Bits : IEquatable<DataValue>, IEnumerable<(int pos, InnerValue pow, bool value)>
     {
-        [FieldOffset(0)]
-        public readonly ushort Value;
+        public const int MaxBits = 8;
 
         [FieldOffset(0)]
-        public readonly bool LowerBool;
+        public readonly bool Bool;
 
         [FieldOffset(0)]
-        public readonly byte LowerByte;
-
-        [FieldOffset(1)]
-        public readonly bool UpperBool;
-
-        [FieldOffset(1)]
-        public readonly byte UpperByte;
-
-        [FieldOffset(2)]
-        public readonly byte _size;
+        public readonly InnerValue Value;
 
         public bool GetAt(int bitPos)
             => ((Value >> bitPos) & 0b1) == 0b1;
@@ -36,8 +29,8 @@ namespace HardwareSimulator.Core
         public DataValue Splice(int start, int end, bool keepPos = false)
         {
             var value = Value;
-            value <<= 15 - end;
-            value >>= 15 - end;
+            value <<= MaxBits - 1 - end;
+            value >>= MaxBits - 1 - end;
             value >>= start;
             if (keepPos)
                 value <<= start;
@@ -45,20 +38,12 @@ namespace HardwareSimulator.Core
         }
 
         public static DataValue SetAt(in DataValue data, int bitPos, bool value)
-            => (ushort)unchecked(value ? (data.Value | (ushort)(0b1 << bitPos)) : (data.Value & (ushort) ~(0b1 << bitPos)));
+            => (InnerValue)unchecked(value ? (data.Value | (InnerValue)(0b1 << bitPos)) : (data.Value & (InnerValue) ~(0b1 << bitPos)));
 
-        public DataValue(ushort value, byte size = 16)
+        public DataValue8Bits(InnerValue value)
             : this()
         {
             Value = value;
-            _size = size;
-        }
-
-        public DataValue(byte upper, byte lower)
-            : this()
-        {
-            LowerByte = lower;
-            UpperByte = upper;
         }
 
         public bool Equals(DataValue other)
@@ -70,34 +55,34 @@ namespace HardwareSimulator.Core
         public override int GetHashCode()
             => Value.GetHashCode();
 
-        public IEnumerator<(int pos, int pow, bool value)> GetEnumerator()
-        {
-            var t = this;
-            return Enumerable.Range(0, 16).Select(i => (i, (int)Math.Pow(2, i), t.GetAt(i))).Reverse().GetEnumerator();
-        }
+        public IEnumerator<(int pos, InnerValue pow, bool value)> GetEnumerator()
+            => Enumerable.Range(0, MaxBits).Select(EnumaratorItem).Reverse().GetEnumerator();
+
+        private (int, InnerValue, bool) EnumaratorItem(int i)
+            => (i, (InnerValue)Math.Pow(2, i), GetAt(i));
 
         IEnumerator IEnumerable.GetEnumerator()
             => GetEnumerator();
 
-        public static implicit operator DataValue(ushort value)
+        public static implicit operator DataValue(InnerValue value)
             => new DataValue(value);
 
         public static implicit operator DataValue(bool value)
-            => value ? new DataValue(0xff, 0xff) : new DataValue(0);
+            => value ? new DataValue(InnerValue.MaxValue) : new DataValue(InnerValue.MinValue);
 
         public static implicit operator bool(DataValue value)
             => value.Value != 0;
 
-        public static implicit operator ushort(DataValue value)
+        public static implicit operator InnerValue(DataValue value)
             => value.Value;
 
         public static bool operator ==(DataValue value1, DataValue value2)
             => value1.Equals(value2);
 
-        public static DataValue operator |(DataValue value1, DataValue value2)
-            => (ushort)(value1.Value | value2.Value);
-
         public static bool operator !=(DataValue value1, DataValue value2)
             => !value1.Equals(value2);
+
+        public static DataValue operator |(DataValue value1, DataValue value2)
+            => (InnerValue)(value1.Value | value2.Value);
     }
 }

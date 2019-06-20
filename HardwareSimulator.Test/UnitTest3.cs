@@ -1,5 +1,11 @@
-using HardwareSimulator.Core;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+#if Computer8Bits
+using DataValue = HardwareSimulator.Core.DataValue8Bits;
+using InnerType = System.Byte;
+#elif Computer16Bits
+using DataValue = HardwareSimulator.Core.DataValue16Bits;
+using InnerType = System.UInt16;
+#endif
 
 namespace HardwareSimulator.Test
 {
@@ -9,8 +15,8 @@ namespace HardwareSimulator.Test
         [TestMethod]
         public void ContainsOut()
         {
-            byte upper = 0xf0;
-            byte lower = 0x00;
+            InnerType upper = 0xf0;
+            InnerType lower = 0x00;
             var value = (ushort)((upper << 8) + lower);
             var data1 = new DataValue(value);
             var data2 = new DataValue(value);

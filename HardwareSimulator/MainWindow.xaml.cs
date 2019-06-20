@@ -1,10 +1,17 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using HardwareSimulator.Core;
+#if Computer8Bits
+using DataValue = HardwareSimulator.Core.DataValue8Bits;
+using InnerType = System.Byte;
+#elif Computer16Bits
+using DataValue = HardwareSimulator.Core.DataValue16Bits;
+using InnerType = System.UInt16;
+#endif
 
 namespace HardwareSimulator
 {
@@ -119,9 +126,8 @@ namespace HardwareSimulator
                 case CheckBox box when box.Content is StackPanel stack:
                     InputConnectors[(stack.Children[0] as Button).Content.ToString()] = box.IsChecked;
                     break;
-                case CheckBox box:
-                    var context = ((int pos, int, bool value))box.DataContext;
-                    var tag = (KeyValuePair<string, DataValue?>)box.Tag;
+                case CheckBox box when box.Tag is KeyValuePair<string, DataValue?> tag:
+                    var context = ((int pos, InnerType, bool value))box.DataContext;
                     InputConnectors[tag.Key] = DataValue.SetAt(tag.Value ?? 0, context.pos, box.IsChecked ?? !context.value);
                     break;
                 case Button button:
