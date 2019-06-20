@@ -131,15 +131,15 @@ namespace HardwareSimulator
         {
             switch (sender)
             {
-                case CheckBox box when box.Content is StackPanel stack:
-                    InputConnectors[(stack.Children[0] as Button).Content.ToString()] = box.IsChecked;
+                case CheckBox box when ((box.Content as StackPanel)?.Children[0] as Button)?.Content is string key:
+                    InputConnectors[key] = box.IsChecked;
                     break;
                 case CheckBox box when box.Tag is KeyValuePair<string, DataValue?> tag:
                     var context = ((int pos, InnerType, bool value))box.DataContext;
                     InputConnectors[tag.Key] = DataValue.SetAt(tag.Value ?? 0, context.pos, box.IsChecked ?? !context.value);
                     break;
-                case Button button:
-                    InputConnectors[button.Content.ToString()] ^= true;
+                case Button button when button.Content is string key:
+                    InputConnectors[key] ^= true;
                     break;
                 default:
                     return;
