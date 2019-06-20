@@ -74,11 +74,12 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <CheckBox IsChecked="{Binding Mode=OneWay, Converter={StaticResource TupleConv}, ConverterParameter=1}" Click="InputConnector_Click" Tag="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext}"/>
+                                                    <CheckBox IsChecked="{Binding Mode=OneWay, Converter={StaticResource TupleConv}, ConverterParameter=2}" Content="{Binding Mode=OneWay, Converter={StaticResource TupleConv}, ConverterParameter=1}" Click="InputConnector_Click" Tag="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext}"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                             
                                         </ItemsControl>
+                                        <TextBlock Text="{conv:ConverterBindableBinding Binding={Binding Value, Mode=OneWay}, Converter={StaticResource DVToString}, ConverterParameterBinding={Binding SelectedItem, ElementName=Display}}"/>
                                     </StackPanel>
                                 </CheckBox.Content>
                             </CheckBox>
@@ -96,9 +97,9 @@
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
 
-            <conv:DataValueParameters>Binary</conv:DataValueParameters>
-            <conv:DataValueParameters>Octal</conv:DataValueParameters>
+            <conv:DataValueParameters>SignedDecimal</conv:DataValueParameters>
             <conv:DataValueParameters>Decimal</conv:DataValueParameters>
+            <conv:DataValueParameters>Binary</conv:DataValueParameters>
             <conv:DataValueParameters>Hexadecimal</conv:DataValueParameters>
         </ListBox>
         <ItemsControl Grid.Column="2" Grid.Row="2" ItemsSource="{Binding Path=InternalConnectors}" IsEnabled="False" VerticalContentAlignment="Top">

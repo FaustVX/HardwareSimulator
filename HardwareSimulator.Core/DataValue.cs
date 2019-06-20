@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace HardwareSimulator.Core
 {
     [StructLayout(LayoutKind.Explicit)]
-    public readonly struct DataValue : IEquatable<DataValue>, IEnumerable<(int pos, bool value)>
+    public readonly struct DataValue : IEquatable<DataValue>, IEnumerable<(int pos, int pow, bool value)>
     {
         [FieldOffset(0)]
         public readonly ushort Value;
@@ -29,6 +29,20 @@ namespace HardwareSimulator.Core
 
         public bool GetAt(int bitPos)
             => ((Value >> bitPos) & 0b1) == 0b1;
+
+        public DataValue Splice(int lenght)
+            => Splice(0, lenght);
+
+        public DataValue Splice(int start, int end, bool keepPos = false)
+        {
+            var value = Value;
+            value <<= 15 - end;
+            value >>= 15 - end;
+            value >>= start;
+            if (keepPos)
+                value <<= start;
+            return value;
+        }
 
         public static DataValue SetAt(in DataValue data, int bitPos, bool value)
             => (ushort)unchecked(value ? (data.Value | (ushort)(0b1 << bitPos)) : (data.Value & (ushort) ~(0b1 << bitPos)));
@@ -56,10 +70,10 @@ namespace HardwareSimulator.Core
         public override int GetHashCode()
             => Value.GetHashCode();
 
-        public IEnumerator<(int pos, bool value)> GetEnumerator()
+        public IEnumerator<(int pos, int pow, bool value)> GetEnumerator()
         {
             var t = this;
-            return Enumerable.Range(0, 16).Select(i => (i, t.GetAt(i))).GetEnumerator();
+            return Enumerable.Range(0, 16).Select(i => (i, (int)Math.Pow(2, i), t.GetAt(i))).Reverse().GetEnumerator();
         }
 
         IEnumerator IEnumerable.GetEnumerator()
@@ -79,6 +93,9 @@ namespace HardwareSimulator.Core
 
         public static bool operator ==(DataValue value1, DataValue value2)
             => value1.Equals(value2);
+
+        public static DataValue operator |(DataValue value1, DataValue value2)
+            => (ushort)(value1.Value | value2.Value);
 
         public static bool operator !=(DataValue value1, DataValue value2)
             => !value1.Equals(value2);

@@ -63,5 +63,15 @@ namespace HardwareSimulator.Test
             Assert.IsFalse(value.GetAt(5));
             Assert.IsFalse(value.GetAt(6));
         }
+
+        [TestMethod]
+        public void Splice()
+        {
+            var data = new DataValue(0b0011_0101);
+            var splice = data.Splice(1, 5);
+            Assert.AreEqual(0b11_010, splice.Value);
+            splice = data.Splice(0, 1);
+            Assert.AreEqual(0b1, splice.Value);
+        }
     }
 }

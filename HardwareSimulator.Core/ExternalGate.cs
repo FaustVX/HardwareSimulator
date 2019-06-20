@@ -46,12 +46,12 @@ namespace HardwareSimulator.Core
         {
             var name = "[a-zA-Z_][a-zA-Z0-9_]*";
             var array = @"(?:\[([1-9]|1[0-6]?)\])";
-            var array0 = @"(?:\[(0*[0-9]|0*1[0-6]?)\])";
+            var span = @"(?:\[(0*[0-9]|0*1[0-6]?)(?:\.\.(0*[0-9]|0*1[0-6]?))?\])";
             _regexFile = new Regex(@"^CHIP\s+(" + name + @")\s*\n*{\r*\n*((?:.*\n)*?)\r*\n*}$", RegexOptions.Multiline);
             _regexContent = new Regex(@"IN\s+(.*?;).*?OUT\s+(.*?;).*?PARTS:\r?\n?(.*)", RegexOptions.Singleline);
             _regexConnectors = new Regex("(" + name + ")" + array + "?[,;]");
             //_regexConnectors = new Regex("(" + name + ")[,;]");
-            _regexPart = new Regex(name + @"\s*\(\s*(?:" + name + array0 + @"?\s*=\s*" + name + array0 + @"?\s*,?\s*)+\)\s*;");
+            _regexPart = new Regex(name + @"\s*\(\s*(?:" + name + span + @"?\s*=\s*" + name + span + @"?\s*,?\s*)+\)\s*;");
         }
 
         private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
@@ -85,20 +85,24 @@ namespace HardwareSimulator.Core
             {
                 foreach (var input in ins)
                 {
-                    var split = input.Key.Split("[]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                    var split = input.Key.Split("[.]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
                     var name = split[0];
 
                     if (inputs.ContainsKey(name))
                     {
                         foreach (var i in input)
                         {
-                            if (split.Length == 2 && int.TryParse(split[1], out var pos))
-                                if (inputs[name].HasValue)
-                                    yield return (i, inputs[name].Value.GetAt(pos));
-                                else
-                                    yield return (i, null);
+                            if (inputs[name] is null)
+                                yield return (i, null);
                             else
-                                yield return (i, inputs[name]);
+                            {
+                                if (split.Length == 2 && int.TryParse(split[1], out var pos))
+                                    yield return (i, inputs[name].Value.GetAt(pos));
+                                else if (split.Length == 3 && int.TryParse(split[1], out var start) && int.TryParse(split[2], out var end) && end > start)
+                                    yield return (i, inputs[name].Value.Splice(start, end));
+                                else
+                                    yield return (i, inputs[name]);
+                            }
                         }
                     }
                 }
@@ -114,12 +118,14 @@ namespace HardwareSimulator.Core
                         {
                             foreach (var o in output)
                             {
-                                var split = o.Split("[]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                                var split = o.Split("[.]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
                                 var name = split[0];
                                 if (split.Length == 1)
                                     inputs[o] = result.Value;
-                                else
-                                    inputs[name] = DataValue.SetAt(inputs.TryGetValue(name, out var value) ? (value?.Value ?? 0) : ushort.MinValue, int.Parse(split[1]), result.Value.Value);
+                                else if (split.Length == 2 && int.TryParse(split[1], out var i))
+                                    inputs[name] = DataValue.SetAt(inputs.TryGetValue(name, out var value) ? (value?.Value ?? 0) : ushort.MinValue, i, result.Value.Value);
+                                else if (split.Length == 3 && int.TryParse(split[1], out var start) && int.TryParse(split[2], out var end) && end > start)
+                                    inputs[name] = (inputs.TryGetValue(name, out var value) ? value : 0) | (ushort)(result.Value.Value.Splice(end-start) << start);
                             }
                         }
                     }
@@ -158,7 +164,7 @@ namespace HardwareSimulator.Core
         {
             var parts = new List<(Gate gate, Connector[] inputs, Connector[] outputs)>();
 
-            foreach (var part in partsString)
+            foreach (var part in partsString.Where(p => !string.IsNullOrWhiteSpace(p)))
             {
                 if (!_regexPart.IsMatch(part))
                     throw new System.Exception($"'{part}' is an invalid part call");

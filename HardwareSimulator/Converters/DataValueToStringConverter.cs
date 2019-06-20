@@ -8,8 +8,8 @@ namespace HardwareSimulator.Converters
     public enum DataValueParameters
     {
         Binary = 2, //16 digits
-        Octal = 8, // 6 digits
-        Decimal = 10, // 6 digits
+        SignedDecimal = -10,
+        Decimal = 10,
         Hexadecimal = 16, // 4 digits
     }
 
@@ -25,8 +25,8 @@ namespace HardwareSimulator.Converters
                 {
                     case DataValueParameters.Binary:
                         return System.Convert.ToString(data, (int)parameter).PadLeft(16, '0');
-                    case DataValueParameters.Octal:
-                        return System.Convert.ToString(data, (int)parameter).PadLeft(6, '0');
+                    case DataValueParameters.SignedDecimal:
+                        return System.Convert.ToString((short)(ushort)data, -(int)parameter);
                     case DataValueParameters.Decimal:
                         return System.Convert.ToString(data, (int)parameter);
                     case DataValueParameters.Hexadecimal:
@@ -36,7 +36,8 @@ namespace HardwareSimulator.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-            => value is string s && ushort.TryParse(s, out var number) ? new DataValue(number) : new DataValue?();
+             => throw new NotImplementedException();
+        //=> value is string s && ushort.TryParse(s, out var number) ? new DataValue(number) : new DataValue?();
 
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
              => values[0] + " | " + values[1];

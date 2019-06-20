@@ -120,7 +120,7 @@ namespace HardwareSimulator
                     InputConnectors[(stack.Children[0] as Button).Content.ToString()] = box.IsChecked;
                     break;
                 case CheckBox box:
-                    var context = ((int pos, bool value))box.DataContext;
+                    var context = ((int pos, int, bool value))box.DataContext;
                     var tag = (KeyValuePair<string, DataValue?>)box.Tag;
                     InputConnectors[tag.Key] = DataValue.SetAt(tag.Value ?? 0, context.pos, box.IsChecked ?? !context.value);
                     break;
