@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace HardwareSimulator.Core
 {
     [StructLayout(LayoutKind.Explicit)]
-    public readonly struct DataValue : IEquatable<DataValue>
+    public readonly struct DataValue : IEquatable<DataValue>, IEnumerable<(int pos, bool value)>
     {
         [FieldOffset(0)]
         public readonly ushort Value;
@@ -21,16 +24,20 @@ namespace HardwareSimulator.Core
         [FieldOffset(1)]
         public readonly byte UpperByte;
 
-        public static bool GetAt(in DataValue data, int bitPos)
-            => ((data.Value >> bitPos) & 0b1) == 0b1;
+        [FieldOffset(2)]
+        public readonly byte _size;
+
+        public bool GetAt(int bitPos)
+            => ((Value >> bitPos) & 0b1) == 0b1;
 
         public static DataValue SetAt(in DataValue data, int bitPos, bool value)
             => (ushort)unchecked(value ? (data.Value | (ushort)(0b1 << bitPos)) : (data.Value & (ushort) ~(0b1 << bitPos)));
 
-        public DataValue(ushort value)
+        public DataValue(ushort value, byte size = 16)
             : this()
         {
             Value = value;
+            _size = size;
         }
 
         public DataValue(byte upper, byte lower)
@@ -49,6 +56,15 @@ namespace HardwareSimulator.Core
         public override int GetHashCode()
             => Value.GetHashCode();
 
+        public IEnumerator<(int pos, bool value)> GetEnumerator()
+        {
+            var t = this;
+            return Enumerable.Range(0, 16).Select(i => (i, t.GetAt(i))).GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+            => GetEnumerator();
+
         public static implicit operator DataValue(ushort value)
             => new DataValue(value);
 
@@ -60,10 +76,6 @@ namespace HardwareSimulator.Core
 
         public static implicit operator ushort(DataValue value)
             => value.Value;
-
-        public static implicit operator byte(DataValue value)
-            => value.LowerByte;
-            //=> value.UpperByte == 0 ? value.LowerByte : throw new System.Exception($"{nameof(UpperByte)} must be '0'");
 
         public static bool operator ==(DataValue value1, DataValue value2)
             => value1.Equals(value2);

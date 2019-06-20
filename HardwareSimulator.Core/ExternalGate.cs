@@ -85,11 +85,20 @@ namespace HardwareSimulator.Core
             {
                 foreach (var input in ins)
                 {
-                    if(inputs.ContainsKey(input.Key))
+                    var split = input.Key.Split("[]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                    var name = split[0];
+
+                    if (inputs.ContainsKey(name))
                     {
                         foreach (var i in input)
                         {
-                            yield return (i, inputs[input.Key]);
+                            if (split.Length == 2 && int.TryParse(split[1], out var pos))
+                                if (inputs[name].HasValue)
+                                    yield return (i, inputs[name].Value.GetAt(pos));
+                                else
+                                    yield return (i, null);
+                            else
+                                yield return (i, inputs[name]);
                         }
                     }
                 }
@@ -101,11 +110,16 @@ namespace HardwareSimulator.Core
                 {
                     foreach (var output in outs)
                     {
-                        if(output.Key==result.Key)
+                        if(output.Key == result.Key)
                         {
                             foreach (var o in output)
                             {
-                                inputs[o] = result.Value;
+                                var split = o.Split("[]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                                var name = split[0];
+                                if (split.Length == 1)
+                                    inputs[o] = result.Value;
+                                else
+                                    inputs[name] = DataValue.SetAt(inputs.TryGetValue(name, out var value) ? (value?.Value ?? 0) : ushort.MinValue, int.Parse(split[1]), result.Value.Value);
                             }
                         }
                     }
@@ -173,9 +187,6 @@ namespace HardwareSimulator.Core
                 {
                     ;
                 }
-
-                if (!connectors.All(c => gate.Inputs.Contains(c.Item1) || gate.Outputs.Contains(c.Item1)))
-                    throw new System.Exception();
 
                 parts.Add((gate,
                     inputs:  connectors.Where(c => gate.Inputs.Contains(c.Item1)).GroupBy(c => c.Item2, c => c.Item1).ToArray(),

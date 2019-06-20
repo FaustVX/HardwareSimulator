@@ -12,8 +12,8 @@ namespace HardwareSimulator.Test
             byte upper = 0xf0;
             byte lower = 0x00;
             var value = (ushort)((upper << 8) + lower);
-            var data1 = new DataValue(upper, lower);
-            var data2 = new DataValue(upper, lower);
+            var data1 = new DataValue(value);
+            var data2 = new DataValue(value);
             Assert.AreEqual(upper, data1.UpperByte);
             Assert.AreEqual(lower, data1.LowerByte);
             Assert.AreEqual(value, data1.Value);
@@ -49,19 +49,19 @@ namespace HardwareSimulator.Test
         public void GetBit()
         {
             DataValue value = 0b0000_0100;
-            Assert.IsFalse(DataValue.GetAt(value, 1));
-            Assert.IsTrue(DataValue.GetAt(value, 2));
-            Assert.IsFalse(DataValue.GetAt(value, 3));
+            Assert.IsFalse(value.GetAt(1));
+            Assert.IsTrue(value.GetAt(2));
+            Assert.IsFalse(value.GetAt(3));
 
             value = DataValue.SetAt(value, 5, true);
-            Assert.IsFalse(DataValue.GetAt(value, 4));
-            Assert.IsTrue(DataValue.GetAt(value, 5));
-            Assert.IsFalse(DataValue.GetAt(value, 6));
+            Assert.IsFalse(value.GetAt(4));
+            Assert.IsTrue(value.GetAt(5));
+            Assert.IsFalse(value.GetAt(6));
 
             value = DataValue.SetAt(value, 5, false);
-            Assert.IsFalse(DataValue.GetAt(value, 4));
-            Assert.IsFalse(DataValue.GetAt(value, 5));
-            Assert.IsFalse(DataValue.GetAt(value, 6));
+            Assert.IsFalse(value.GetAt(4));
+            Assert.IsFalse(value.GetAt(5));
+            Assert.IsFalse(value.GetAt(6));
         }
     }
 }

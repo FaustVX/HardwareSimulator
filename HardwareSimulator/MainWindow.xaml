@@ -10,7 +10,10 @@
         DataContext="{Binding ElementName=This, Mode=OneTime}"
         Title="MainWindow" Height="450" Width="800">
     <Window.Resources>
+        <conv:DebugConverter x:Key="DebugConv"/>
         <conv:DataValueToBoolConverter x:Key="DVToBool"/>
+        <conv:DataValueToStringConverter x:Key="DVToString"/>
+        <conv:TupleConverter x:Key="TupleConv"/>
     </Window.Resources>
     
     <Grid>
@@ -40,7 +43,14 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <CheckBox Content="{Binding Key, Mode=OneWay}" IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" IsEnabled="False"/>
+                            <CheckBox IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" IsEnabled="False" VerticalContentAlignment="Center">
+                                <CheckBox.Content>
+                                    <StackPanel Orientation="Vertical">
+                                        <TextBlock Text="{Binding Key, Mode=OneWay}"/>
+                                        <TextBlock Text="{conv:ConverterBindableBinding Binding={Binding Value, Mode=OneWay}, Converter={StaticResource DVToString}, ConverterParameterBinding={Binding SelectedItem, ElementName=Display}}"/>
+                                    </StackPanel>
+                                </CheckBox.Content>
+                            </CheckBox>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -52,9 +62,24 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <CheckBox IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" Click="InputConnector_Click" HorizontalContentAlignment="Stretch">
+                            <CheckBox IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" Click="InputConnector_Click" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center">
                                 <CheckBox.Content>
-                                    <Button Content="{Binding Key, Mode=OneTime}" PreviewMouseDown="InputConnector_Click" PreviewMouseUp="InputConnector_Click"/>
+                                    <StackPanel Orientation="Vertical">
+                                        <Button Content="{Binding Key, Mode=OneTime}" PreviewMouseDown="InputConnector_Click" PreviewMouseUp="InputConnector_Click"/>
+                                        <ItemsControl ItemsSource="{Binding Value, Mode=OneWay}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <UniformGrid Columns="8"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <CheckBox IsChecked="{Binding Mode=OneWay, Converter={StaticResource TupleConv}, ConverterParameter=1}" Click="InputConnector_Click" Tag="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                            
+                                        </ItemsControl>
+                                    </StackPanel>
                                 </CheckBox.Content>
                             </CheckBox>
                         </DataTemplate>
@@ -64,8 +89,19 @@
         </Border>
         
         <Button Grid.Column="2" Content="Load Gate" Click="LoadGate_Click"/>
-        <Button Grid.Column="2" Grid.Row="1" Content="Internals" IsEnabled="False"/>
-        <ItemsControl Grid.Column="2" Grid.Row="2" ItemsSource="{Binding Path=InternalConnectors}">
+        <ListBox x:Name="Display" Grid.Column="2" Grid.Row="1" SelectedIndex="3">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <UniformGrid Columns="2"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+
+            <conv:DataValueParameters>Binary</conv:DataValueParameters>
+            <conv:DataValueParameters>Octal</conv:DataValueParameters>
+            <conv:DataValueParameters>Decimal</conv:DataValueParameters>
+            <conv:DataValueParameters>Hexadecimal</conv:DataValueParameters>
+        </ListBox>
+        <ItemsControl Grid.Column="2" Grid.Row="2" ItemsSource="{Binding Path=InternalConnectors}" IsEnabled="False" VerticalContentAlignment="Top">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                     <UniformGrid/>
@@ -73,7 +109,14 @@
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                    <CheckBox Content="{Binding Key, Mode=OneWay}" IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" IsEnabled="False"/>
+                    <CheckBox IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" VerticalContentAlignment="Center">
+                        <CheckBox.Content>
+                            <StackPanel Orientation="Vertical">
+                                <TextBlock Text="{Binding Key, Mode=OneWay}"/>
+                                <TextBlock Text="{conv:ConverterBindableBinding Binding={Binding Value, Mode=OneWay}, Converter={StaticResource DVToString}, ConverterParameterBinding={Binding SelectedItem, ElementName=Display}}"/>
+                            </StackPanel>
+                        </CheckBox.Content>
+                    </CheckBox>
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
