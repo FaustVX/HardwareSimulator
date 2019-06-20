@@ -88,8 +88,11 @@
                 </ItemsControl>
             </Grid>
         </Border>
-        
-        <Button Grid.Column="2" Content="Load Gate" Click="LoadGate_Click"/>
+
+        <UniformGrid Grid.Column="2" Rows="1">
+            <Button Content="Load Gate" Click="LoadGate_Click"/>
+            <Button Content="Clear Cache" Click="ClearCache_Click"/>
+        </UniformGrid>
         <ListBox x:Name="Display" Grid.Column="2" Grid.Row="1" SelectedIndex="3">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>

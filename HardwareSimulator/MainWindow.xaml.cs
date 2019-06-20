@@ -22,6 +22,11 @@ namespace HardwareSimulator
     {
         static MainWindow()
         {
+            ClearCache();
+        }
+
+        private static void ClearCache()
+        {
             Gate.ClearGates();
             Gate.RegisterGate<Nand>();
             Gate.RegisterGate<And>();
@@ -98,6 +103,9 @@ namespace HardwareSimulator
         public event PropertyChangedEventHandler PropertyChanged;
 
         private void LoadGate_Click(object sender, RoutedEventArgs e)
+            => LoadGate();
+
+        private void LoadGate()
         {
             var dialog = new Microsoft.Win32.OpenFileDialog
             {
@@ -156,6 +164,12 @@ namespace HardwareSimulator
             var context = DataContext;
             DataContext = null;
             DataContext = context;
+        }
+
+        private void ClearCache_Click(object sender, RoutedEventArgs e)
+        {
+            ClearCache();
+            LoadGate();
         }
     }
 }
