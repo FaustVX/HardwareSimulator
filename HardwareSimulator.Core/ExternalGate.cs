@@ -82,7 +82,7 @@ namespace HardwareSimulator.Core
             inputs["false"] = false;
 
             foreach (var (gate, ins, outs) in Parts)
-                ProcessResults(gate.Execute(GetInputs(ins).ToArray()), outs);
+                ProcessResults(gate.Execute(GetInputs(ins).GroupBy(t => t.name, t => t.value).Select(n => (n.Key, n.Aggregate((prev, next) => prev | next))).ToArray()), outs);
 
             inputs.Remove("true");
             inputs.Remove("false");
@@ -92,24 +92,79 @@ namespace HardwareSimulator.Core
             {
                 foreach (var input in ins)
                 {
-                    var split = input.Key.Split("[.]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
-                    var name = split[0];
+                    var split1 = input.Key.Split("[.]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                    var name1 = split1[0];
 
-                    if (inputs.ContainsKey(name))
+                    if (inputs.ContainsKey(name1))
                     {
                         foreach (var i in input)
                         {
-                            if (inputs[name] is null)
-                                yield return (i, null);
-                            else
+                            var split2 = i.Split("[.]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                            var name2 = split2[0];
+
+
+                            if (split2.Length == 2 && byte.TryParse(split2[1], out var pos2) && pos2 < DataValue.MaxBits)
                             {
-                                if (split.Length == 2 && int.TryParse(split[1], out var pos))
-                                    yield return (i, inputs[name].Value.GetAt(pos));
-                                else if (split.Length == 3 && int.TryParse(split[1], out var start) && int.TryParse(split[2], out var end) && end > start)
-                                    yield return (i, inputs[name].Value.Splice(start, end));
+                                var result = new DataValue?();
+
+                                if (inputs[name1] is null)
+                                    yield return (name2, null);
                                 else
-                                    yield return (i, inputs[name]);
+                                {
+                                    if (split1.Length == 2 && byte.TryParse(split1[1], out var pos) && pos < DataValue.MaxBits)
+                                        result = (DataValue)((inputs[name1].Value.GetAt(pos) ? 0b1ul : 0b0ul) << pos2);
+                                    else if (split1.Length == 3 && byte.TryParse(split1[1], out var start) && start < DataValue.MaxBits && byte.TryParse(split1[2], out var end) && end < DataValue.MaxBits && end > start)
+                                        throw new System.Exception();
+                                    else if (split1.Length == 1)
+                                        result = (DataValue)((inputs[name1].Value.GetAt(0) ? 0b1ul : 0b0ul) << pos2);
+                                    else
+                                        throw new System.Exception();
+
+                                    yield return (name2, result);
+                                }
                             }
+                            else if (split2.Length == 3 && byte.TryParse(split2[1], out var start2) && start2 < DataValue.MaxBits && byte.TryParse(split2[2], out var end2) && end2 < DataValue.MaxBits && end2 > start2)
+                            {
+                                var result = new DataValue?();
+
+                                if (inputs[name1] is null)
+                                    yield return (name2, null);
+                                else
+                                {
+                                    if (split1.Length == 2 && byte.TryParse(split1[1], out var pos) && pos < DataValue.MaxBits)
+                                        throw new System.Exception();
+                                    else if (split1.Length == 3 && byte.TryParse(split1[1], out var start) && start < DataValue.MaxBits && byte.TryParse(split1[2], out var end) && end < DataValue.MaxBits && end > start && end - start == end2 - start2)
+                                        result = (DataValue)(inputs[name1].Value.Splice(start, end) << start2);
+                                    else if (split1.Length == 1)
+                                        result = inputs[name1];
+                                    else
+                                        throw new System.Exception();
+
+                                    yield return (name2, result);
+                                }
+                            }
+                            else if (split2.Length == 1)
+                            {
+                                var result = new DataValue?();
+
+                                if (inputs[name1] is null)
+                                    yield return (name2, null);
+                                else
+                                {
+                                    if (split1.Length == 2 && byte.TryParse(split1[1], out var pos) && pos < DataValue.MaxBits)
+                                        result = inputs[name1].Value.GetAt(pos);
+                                    else if (split1.Length == 3 && byte.TryParse(split1[1], out var start) && start < DataValue.MaxBits && byte.TryParse(split1[2], out var end) && end < DataValue.MaxBits && end > start)
+                                        result = inputs[name1].Value.Splice(start, end);
+                                    else if (split1.Length == 1)
+                                        result = inputs[name1];
+                                    else
+                                        throw new System.Exception();
+
+                                    yield return (name2, result);
+                                }
+                            }
+                            else
+                                throw new System.Exception();
                         }
                     }
                 }
@@ -121,19 +176,40 @@ namespace HardwareSimulator.Core
                 {
                     foreach (var output in outs)
                     {
-                        if(output.Key == result.Key)
+                        var split = o.Split("[.]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
+                        var name = split[0];
+                        if (!Buses.Contains(name))
                         {
-                            foreach (var o in output)
-                            {
-                                var split = o.Split("[.]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
-                                var name = split[0];
-                                if (split.Length == 1)
-                                    inputs[o] = result.Value;
-                                else if (split.Length == 2 && int.TryParse(split[1], out var i))
-                                    inputs[name] = DataValue.SetAt(inputs.TryGetValue(name, out var value) ? (value?.Value ?? 0) : InnerType.MinValue, i, result.Value.Value);
-                                else if (split.Length == 3 && int.TryParse(split[1], out var start) && int.TryParse(split[2], out var end) && end > start)
-                                    inputs[name] = (inputs.TryGetValue(name, out var value) ? value : 0) | (InnerType)(result.Value.Value.Splice(end-start) << start);
-                            }
+                            if (split.Length == 1)
+                                inputs[o] = result.Value;
+                            else if (split.Length == 2 && byte.TryParse(split[1], out var i) && i < DataValue.MaxBits)
+                                inputs[name] = DataValue.SetAt(inputs.TryGetValue(name, out var value) ? (value?.Value ?? 0) : InnerType.MinValue, i, result.Value ?? false);
+                            else if (split.Length == 3 && byte.TryParse(split[1], out var start) && start < DataValue.MaxBits && byte.TryParse(split[2], out var end) && end < DataValue.MaxBits && end > start)
+                                inputs[name] = (inputs.TryGetValue(name, out var value) ? value : 0) | (InnerType)(result.Value.Value.Splice(end - start) << start);
+                            else
+                                throw new System.Exception();
+                        }
+                        else if (inputs.TryGetValue(name, out var input))
+                        {
+                            if (split.Length == 1)
+                                inputs[o] = input | result.Value;
+                            else if (split.Length == 2 && byte.TryParse(split[1], out var i) && i < DataValue.MaxBits)
+                                inputs[name] = input | DataValue.SetAt(inputs.TryGetValue(name, out var value) ? (value?.Value ?? 0) : InnerType.MinValue, i, result.Value.Value);
+                            else if (split.Length == 3 && byte.TryParse(split[1], out var start) && start < DataValue.MaxBits && byte.TryParse(split[2], out var end) && end < DataValue.MaxBits && end > start)
+                                inputs[name] = input | (inputs.TryGetValue(name, out var value) ? value : 0) | (InnerType)(result.Value.Value.Splice(end - start) << start);
+                            else
+                                throw new System.Exception();
+                        }
+                        else
+                        {
+                            if (split.Length == 1)
+                                inputs[o] = result.Value;
+                            else if (split.Length == 2 && byte.TryParse(split[1], out var i) && i < DataValue.MaxBits)
+                                inputs[name] = DataValue.SetAt(inputs.TryGetValue(name, out var value) ? (value?.Value ?? 0) : InnerType.MinValue, i, result.Value.Value);
+                            else if (split.Length == 3 && byte.TryParse(split[1], out var start) && start < DataValue.MaxBits && byte.TryParse(split[2], out var end) && end < DataValue.MaxBits && end > start)
+                                inputs[name] = (inputs.TryGetValue(name, out var value) ? value : 0) | (InnerType)(result.Value.Value.Splice(end - start) << start);
+                            else
+                                throw new System.Exception();
                         }
                     }
                 }
@@ -193,7 +269,7 @@ namespace HardwareSimulator.Core
 
                 try
                 {
-                    var conn = connectors.First(c => !gate.Inputs.Contains(c.Item1) && !gate.Outputs.Contains(c.Item1));
+                    var conn = connectors.First(c => !gate.Inputs.Contains(c.Item1.Split('[')[0]) && !gate.Outputs.Contains(c.Item1.Split('[')[0]));
                     throw new System.Exception($"'{conn.Item1}' isn't a connector in '{name}' gate");
                 }
                 catch (System.InvalidOperationException)
@@ -202,8 +278,8 @@ namespace HardwareSimulator.Core
                 }
 
                 parts.Add((gate,
-                    inputs:  connectors.Where(c => gate.Inputs.Contains(c.Item1)).GroupBy(c => c.Item2, c => c.Item1).ToArray(),
-                    outputs: connectors.Where(c => gate.Outputs.Contains(c.Item1)).GroupBy(c => c.Item1, c => c.Item2).ToArray()));
+                    inputs:  connectors.Where(c => gate.Inputs.Contains(c.Item1.Split('[')[0])).GroupBy(c => c.Item2, c => c.Item1).ToArray(),
+                    outputs: connectors.Where(c => gate.Outputs.Contains(c.Item1.Split('[')[0])).GroupBy(c => c.Item1, c => c.Item2).ToArray()));
             }
 
             parts.Sort((t1, t2) =>
