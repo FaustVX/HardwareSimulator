@@ -55,7 +55,7 @@ namespace HardwareSimulator.Core
             var array = @"(?:\[([1-9]|1[0-6]?)\])";
             var span = @"(?:\[(0*[0-9]|0*1[0-6]?)(?:\.\.(0*[0-9]|0*1[0-6]?))?\])";
             _regexFile = new Regex(@"^CHIP\s+(" + name + @")\s*\n*{\r*\n*((?:.*\n)*?)\r*\n*}$", RegexOptions.Multiline);
-            _regexContent = new Regex(@"IN\s+(.*?;).*?OUT\s+(.*?;).*?PARTS:\r?\n?(.*)", RegexOptions.Singleline);
+            _regexContent = new Regex(@"(STATED;.*?)?IN\s+(.*?;).*?OUT\s+(.*?;).*?(?:CLOCKED\s+(.*?;).*?)?(?:BUS\s+(.*?;).*?)?PARTS:\r?\n?(.*)", RegexOptions.Singleline);
             _regexConnectors = new Regex("(" + name + ")" + array + "?[,;]");
             //_regexConnectors = new Regex("(" + name + ")[,;]");
             _regexPart = new Regex(name + @"\s*\(\s*(?:" + name + span + @"?\s*=\s*" + name + span + @"?\s*,?\s*)+\)\s*;");
@@ -235,12 +235,13 @@ namespace HardwareSimulator.Core
                 throw new System.Exception($"Chip name not equals the file name. Actual:'{name}', expected:'{Path.GetFileNameWithoutExtension(file)}'");
             
             var content = _regexContent.Match(regex.Groups[2].Value);
-            var ins = _regexConnectors.Matches(content.Groups[1].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
-            var outs = _regexConnectors.Matches(content.Groups[2].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
-            var parts = content.Groups[3].Value;
+            var stated = content.Groups[1].Success;
+            var ins = _regexConnectors.Matches(content.Groups[2].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
+            var outs = _regexConnectors.Matches(content.Groups[3].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
+            var parts = content.Groups[content.Groups.Count - 1].Value;
             var gates = Parse(ins, outs, new FileInfo(file).Directory, parts.Split("\r\n".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()));
 
-            return gates.Any(g => g.gate.IsStated) ? new StatedGate(name, ins, outs, gates) : new ExternalGate(name, ins, outs, gates);
+            return stated || gates.Any(g => g.gate.IsStated) ? new StatedGate(name, ins, outs, gates) : new ExternalGate(name, ins, outs, gates);
         }
 
         private static List<(Gate gate, Connector[] inputs, Connector[] outputs)> Parse(string[] ins, string[] outs, DirectoryInfo directory, IEnumerable<string> partsString)
