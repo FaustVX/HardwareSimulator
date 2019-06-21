@@ -13,8 +13,6 @@ namespace HardwareSimulator.Test
     [TestClass]
     public class BenEater
     {
-        private ExternalGate _latch;
-
         [TestInitialize, TestCleanup]
         public void Initialize()
         {
@@ -27,23 +25,41 @@ namespace HardwareSimulator.Test
             Gate.RegisterGate<Or>();
             Gate.RegisterGate<Xor>();
             Gate.RegisterGate<SR_Latch>();
-            _latch = ExternalGate.Parse(@"D:\Downloads\nand2tetris\perso\D_Latch.hdl");
         }
 
         [TestMethod]
-        public void D_Latche()
+        public void D_Latch()
         {
-            var result = _latch.Execute(("d", false), ("en", false));
+            var latch = ExternalGate.Parse($@"D:\Downloads\nand2tetris\perso\{nameof(D_Latch)}.hdl");
+            var result = latch.Execute(("d", false), ("en", false));
 
-            result = _latch.Execute(("d", true), ("en", true));
+            result = latch.Execute(("d", true), ("en", true));
             Assert.IsTrue(result["out"].Value);
-            result = _latch.Execute(("d", false), ("en", true));
+            result = latch.Execute(("d", false), ("en", true));
             Assert.IsFalse(result["out"].Value);
-            result = _latch.Execute(("d", false), ("en", false));
+            result = latch.Execute(("d", false), ("en", false));
             Assert.IsFalse(result["out"].Value);
-            result = _latch.Execute(("d", true), ("en", false));
+            result = latch.Execute(("d", true), ("en", false));
             Assert.IsFalse(result["out"].Value);
-            result = _latch.Execute(("d", true), ("en", true));
+            result = latch.Execute(("d", true), ("en", true));
+            Assert.IsTrue(result["out"].Value);
+        }
+
+        [TestMethod]
+        public void JK_FlipFlop()
+        {
+            var latch = ExternalGate.Parse($@"D:\Downloads\nand2tetris\perso\{nameof(JK_FlipFlop)}.hdl");
+            var result = latch.Execute(("j", false), ("k", false), ("en", false));
+
+            result = latch.Execute(("j", true), ("en", true));
+            Assert.IsTrue(result["out"].Value);
+            result = latch.Execute(("j", false), ("en", true));
+            Assert.IsTrue(result["out"].Value);
+            result = latch.Execute(("j", false), ("en", false));
+            Assert.IsTrue(result["out"].Value);
+            result = latch.Execute(("j", true), ("en", false));
+            Assert.IsTrue(result["out"].Value);
+            result = latch.Execute(("j", true), ("en", true));
             Assert.IsTrue(result["out"].Value);
         }
     }

@@ -15,16 +15,22 @@ namespace HardwareSimulator.Test
         [TestMethod]
         public void ContainsOut()
         {
-            InnerType upper = 0xf0;
-            InnerType lower = 0x00;
-            var value = (ushort)((upper << 8) + lower);
+#if Computer8Bits
+            InnerType value = 0xf0;
+#elif Computer16Bits
+            byte upper = 0xf0;
+            byte lower = 0x00;
+            var value = (InnerType)((upper << 8) + lower);
+#endif
             var data1 = new DataValue(value);
             var data2 = new DataValue(value);
-            Assert.AreEqual(upper, data1.UpperByte);
-            Assert.AreEqual(lower, data1.LowerByte);
+#if Computer16Bits
+            Assert.AreEqual(upper, data1.Upper);
+            Assert.AreEqual(lower, data1.Lower);
+            Assert.IsTrue(data1.Upper.Bool);
+            Assert.IsFalse(data1.Lower.Bool);
+#endif
             Assert.AreEqual(value, data1.Value);
-            Assert.IsTrue(data1.UpperBool);
-            Assert.IsFalse(data1.LowerBool);
             Assert.IsTrue(data1);
             Assert.IsTrue(data1 == data2);
         }
@@ -34,8 +40,12 @@ namespace HardwareSimulator.Test
         {
             DataValue data = true;
             Assert.IsTrue(data);
-            Assert.AreEqual(0xff, data.LowerByte);
-            Assert.AreEqual(0xff, data.UpperByte);
+#if Computer8Bits
+            Assert.AreEqual(0xff, data.Value); 
+#elif Computer16Bits
+            Assert.AreEqual(0xff, data.Lower);
+            Assert.AreEqual(0xff, data.Upper); 
+#endif
         }
 
         [TestMethod]
@@ -43,12 +53,20 @@ namespace HardwareSimulator.Test
         {
             DataValue data = false;
             Assert.IsFalse(data);
-            Assert.AreEqual(0x00, data.LowerByte);
-            Assert.AreEqual(0x00, data.UpperByte);
+#if Computer8Bits
+            Assert.AreEqual(0x00, data.Value);
+#elif Computer16Bits
+            Assert.AreEqual(0x00, data.Lower);
+            Assert.AreEqual(0x00, data.Upper); 
+#endif
             data++;
             Assert.IsTrue(data);
-            Assert.AreEqual(0x01, data.LowerByte);
-            Assert.AreEqual(0x00, data.UpperByte);
+#if Computer8Bits
+            Assert.AreEqual(0x01, data.Value);
+#elif Computer16Bits
+            Assert.AreEqual(0x01, data.Lower);
+            Assert.AreEqual(0x00, data.Upper); 
+#endif
         }
 
         [TestMethod]

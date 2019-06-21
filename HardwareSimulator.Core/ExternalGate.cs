@@ -282,6 +282,8 @@ namespace HardwareSimulator.Core
                     outputs: connectors.Where(c => gate.Outputs.Contains(c.Item1.Split('[')[0])).GroupBy(c => c.Item1, c => c.Item2).ToArray()));
             }
 
+            return parts;
+
             parts.Sort((t1, t2) =>
             {
                 var t1Int2 = AInB(t1, t2);

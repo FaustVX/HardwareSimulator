@@ -21,7 +21,7 @@ namespace HardwareSimulator.Converters
         Hexadecimal = 16, // 4 digits
     }
 
-    public class DataValueToStringConverter : IValueConverter, IMultiValueConverter
+    public class DataValueToStringConverter : IValueConverter
     {
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
@@ -44,13 +44,6 @@ namespace HardwareSimulator.Converters
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-             => throw new NotImplementedException();
-        //=> value is string s && ushort.TryParse(s, out var number) ? new DataValue(number) : new DataValue?();
-
-        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
-             => values[0] + " | " + values[1];
-
-        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
              => throw new NotImplementedException();
     }
 }
