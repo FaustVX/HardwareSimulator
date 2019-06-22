@@ -18,8 +18,8 @@
     
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="3*"/>
-            <ColumnDefinition Width="1*"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -62,7 +62,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <CheckBox IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" Click="InputConnector_Click" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center">
+                            <CheckBox IsChecked="{Binding Value, Mode=OneWay, Converter={StaticResource DVToBool}}" Click="InputConnector_Click" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center" Margin="5">
                                 <CheckBox.Content>
                                     <StackPanel Orientation="Vertical">
                                         <Button Content="{Binding Key, Mode=OneTime}" PreviewMouseDown="InputConnector_Click" PreviewMouseUp="InputConnector_Click"/>
@@ -74,7 +74,7 @@
                                             </ItemsControl.ItemsPanel>
                                             <ItemsControl.ItemTemplate>
                                                 <DataTemplate>
-                                                    <CheckBox IsChecked="{Binding Mode=OneWay, Converter={StaticResource TupleConv}, ConverterParameter=2}" Content="{Binding Mode=OneWay, Converter={StaticResource TupleConv}, ConverterParameter=1}" Click="InputConnector_Click" Tag="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext}"/>
+                                                    <CheckBox IsChecked="{Binding Mode=OneWay, Converter={StaticResource TupleConv}, ConverterParameter=2}" ToolTip="{Binding Mode=OneWay, Converter={StaticResource TupleConv}, ConverterParameter=1}" Click="InputConnector_Click" Tag="{Binding RelativeSource={RelativeSource AncestorType=ItemsControl}, Path=DataContext}"/>
                                                 </DataTemplate>
                                             </ItemsControl.ItemTemplate>
                                             
@@ -108,7 +108,7 @@
         <ItemsControl Grid.Column="2" Grid.Row="2" ItemsSource="{Binding Path=InternalConnectors}" IsEnabled="False" VerticalContentAlignment="Top">
             <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <UniformGrid/>
+                    <UniformGrid Columns="2"/>
                 </ItemsPanelTemplate>
             </ItemsControl.ItemsPanel>
             <ItemsControl.ItemTemplate>
