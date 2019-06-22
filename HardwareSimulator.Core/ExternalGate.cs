@@ -17,15 +17,15 @@ namespace HardwareSimulator.Core
     {
         private sealed class StatedGate : ExternalGate
         {
-            public StatedGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, IEnumerable<string> buses, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
-                : base(name, inputs, outputs, buses, true, parts)
+            public StatedGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, IEnumerable<string> buses, string clock, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
+                : base(name, inputs, outputs, buses, clock, true, parts)
             {
                 InternalConnectors = new Dictionary<string, DataValue?>();
                 RegisterGate(name, () => new StatedGate(this));
             }
 
             public StatedGate(StatedGate gate)
-                : this(gate.Name, gate.Inputs, gate.Outputs, gate.Buses, gate.Parts.Select(p => (GetGate(p.gate.Name), p.inputs, p.outputs)).ToList())
+                : this(gate.Name, gate.Inputs, gate.Outputs, gate.Buses, gate.Clock, gate.Parts.Select(p => (GetGate(p.gate.Name), p.inputs, p.outputs)).ToList())
             { }
 
             public Dictionary<string, DataValue?> InternalConnectors { get; }
@@ -56,26 +56,29 @@ namespace HardwareSimulator.Core
             var array = @"(?:\[([1-9]|1[0-6]?)\])";
             var span = @"(?:\[(0*[0-9]|0*1[0-6]?)(?:\.\.(0*[0-9]|0*1[0-6]?))?\])";
             _regexFile = new Regex(@"^CHIP\s+(" + name + @")\s*\n*{\r*\n*((?:.*\n)*?)\r*\n*}$", RegexOptions.Multiline);
-            _regexContent = new Regex(@"(STATED;.*?)?IN\s+(.*?;).*?OUT\s+(.*?;).*?(?:CLOCKED\s+(.*?;).*?)?(?:BUS\s+(.*?;).*?)?PARTS:\r?\n?(.*)", RegexOptions.Singleline);
+            _regexContent = new Regex(@"(STATED;.*?)?IN\s+(.*?;).*?OUT\s+(.*?;).*?(?:CLOCK\s+(.*?;).*?)?(?:BUS\s+(.*?;).*?)?PARTS:\r?\n?(.*)", RegexOptions.Singleline);
             _regexConnectors = new Regex("(" + name + ")" + array + "?[,;]");
             //_regexConnectors = new Regex("(" + name + ")[,;]");
             _regexPart = new Regex(name + @"\s*\(\s*(?:" + name + span + @"?\s*=\s*" + name + span + @"?\s*,?\s*)+\)\s*;");
         }
 
-        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, IEnumerable<string> buses, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
-            : this(name, inputs, outputs, buses, false, parts)
+        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, IEnumerable<string> buses, string clock, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
+            : this(name, inputs, outputs, buses, clock, false, parts)
         {
             RegisterGate(name, this);
         }
 
-        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, IEnumerable<string> buses, bool stated, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
+        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, IEnumerable<string> buses, string clock, bool stated, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
             : base(name, inputs, outputs, stated)
         {
             Parts = parts;
             Buses = buses.ToList().AsReadOnly();
+            Clock = clock;
         }
 
         public IReadOnlyList<string> Buses { get; }
+
+        public string Clock { get; }
 
         protected override Dictionary<string, DataValue?> Execute(Dictionary<string, DataValue?> inputs)
         {
@@ -88,6 +91,8 @@ namespace HardwareSimulator.Core
             }
 
             Execute();
+            if (IsStated || Buses.Any())
+                Execute();
 
             void Execute()
             {
@@ -97,6 +102,7 @@ namespace HardwareSimulator.Core
 
             inputs.Remove("true");
             inputs.Remove("false");
+            inputs.Remove("@clk");
             return inputs;//.Where(kvp => t.Outputs.Contains(kvp.Key)).ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
             IEnumerable<(string name, DataValue? value)> GetInputs(Connector[] ins)
@@ -249,16 +255,21 @@ namespace HardwareSimulator.Core
             var stated = content.Groups[1].Success;
             var ins = _regexConnectors.Matches(content.Groups[2].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
             var outs = _regexConnectors.Matches(content.Groups[3].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
+            var clock = content.Groups[4].Success ? _regexConnectors.Matches(content.Groups[4].Value).Cast<Match>().Select(m => m.Groups[1].Value).First() : null;
             var buses = content.Groups[5].Success ? _regexConnectors.Matches(content.Groups[5].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray() : Enumerable.Empty<string>();
             var parts = content.Groups[content.Groups.Count - 1].Value;
-            var gates = Parse(ins, outs, new FileInfo(file).Directory, parts.Split("\r\n".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()));
+            var gates = Parse(ins, outs, clock, new FileInfo(file).Directory, parts.Split("\r\n".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()));
 
-            return stated || gates.Any(g => g.gate.IsStated) ? new StatedGate(name, ins, outs, buses, gates) : new ExternalGate(name, ins, outs, buses, gates);
+            return stated || gates.Any(g => g.gate.IsStated) ? new StatedGate(name, ins, outs, buses, clock, gates) : new ExternalGate(name, ins, outs, buses, clock, gates);
         }
 
-        private static List<(Gate gate, Connector[] inputs, Connector[] outputs)> Parse(string[] ins, string[] outs, DirectoryInfo directory, IEnumerable<string> partsString)
+        private static List<(Gate gate, Connector[] inputs, Connector[] outputs)> Parse(string[] ins, string[] outs, string clock, DirectoryInfo directory, IEnumerable<string> partsString)
         {
             var parts = new List<(Gate gate, Connector[] inputs, Connector[] outputs)>();
+            if (clock != null)
+                parts.Add((new Clock(),
+                    new[] { ("clk", "in") }.GroupBy(t => t.Item1, t => t.Item2).ToArray(),
+                    new[] { ("out", "@clk") }.GroupBy(t => t.Item1, t => t.Item2).ToArray()));
 
             foreach (var part in partsString.Where(p => !string.IsNullOrWhiteSpace(p)))
             {
@@ -277,8 +288,11 @@ namespace HardwareSimulator.Core
                 var connectors = connectorsString.Split(',')
                     .Select(c => c.Split('=')
                         .Select(s => s.Trim()))
-                    .Select(c => (c.ElementAt(0), c.ElementAt(1)))
+                    .Select(c => (c.ElementAt(0), ReplaceWithClock(c.ElementAt(1))))
                     .ToArray();
+
+                string ReplaceWithClock(string source)
+                    => source == clock ? "@clk" : source;
 
                 try
                 {

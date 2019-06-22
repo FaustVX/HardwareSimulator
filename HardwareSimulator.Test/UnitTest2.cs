@@ -69,5 +69,27 @@ namespace HardwareSimulator.Test
             var result = Not.Execute(("in", true));
             Assert.IsFalse(result["out"].Value);
         }
+
+        [TestMethod]
+        public void Clock()
+        {
+            var clock = new Clock();
+            var result = clock.Execute(true);
+            Assert.IsTrue(result);
+            result = clock.Execute(true);
+            Assert.IsFalse(result);
+            result = clock.Execute(true);
+            Assert.IsFalse(result);
+            result = clock.Execute(false);
+            Assert.IsFalse(result);
+            result = clock.Execute(false);
+            Assert.IsFalse(result);
+            result = clock.Execute(true);
+            Assert.IsTrue(result);
+            result = clock.Execute(false);
+            Assert.IsFalse(result);
+            result = clock.Execute(true);
+            Assert.IsTrue(result);
+        }
     }
 }
