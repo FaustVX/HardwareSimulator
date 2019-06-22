@@ -86,6 +86,20 @@ namespace HardwareSimulator
             }
         }
 
+        private bool _autoExecute = true;
+        public bool AutoExecute
+        {
+            get { return _autoExecute; }
+            set
+            {
+                if (_autoExecute == value)
+                    return;
+
+                _autoExecute = value;
+                OnPropertyChanged();
+            }
+        }
+
         public Dictionary<string, DataValue?> InputConnectors { get; }
         public Dictionary<string, DataValue?> OutputConnectors { get; }
         public Dictionary<string, DataValue?> InternalConnectors { get; }
@@ -144,7 +158,10 @@ namespace HardwareSimulator
                 default:
                     return;
             }
-            ExecuteGate();
+            if (AutoExecute)
+                ExecuteGate();
+            else
+                ResetDataContext();
             e.Handled = true;
         }
 
@@ -171,5 +188,8 @@ namespace HardwareSimulator
             ClearCache();
             LoadGate();
         }
+
+        private void Execute_Click(object sender, RoutedEventArgs e)
+            => ExecuteGate();
     }
 }

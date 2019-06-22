@@ -89,9 +89,11 @@
             </Grid>
         </Border>
 
-        <UniformGrid Grid.Column="2" Rows="1">
+        <UniformGrid Grid.Column="2" Rows="2">
             <Button Content="Load Gate" Click="LoadGate_Click"/>
             <Button Content="Clear Cache" Click="ClearCache_Click"/>
+            <Button Content="Execute" Click="Execute_Click"/>
+            <CheckBox Content="AutoRun" IsChecked="{Binding AutoExecute, Mode=TwoWay}"/>
         </UniformGrid>
         <ListBox x:Name="Display" Grid.Column="2" Grid.Row="1" SelectedIndex="3">
             <ItemsControl.ItemsPanel>
