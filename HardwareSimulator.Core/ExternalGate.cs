@@ -17,14 +17,15 @@ namespace HardwareSimulator.Core
     {
         private sealed class StatedGate : ExternalGate
         {
-            public StatedGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
-                : base(name, inputs, outputs, true, parts)
+            public StatedGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, IEnumerable<string> buses, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
+                : base(name, inputs, outputs, buses, true, parts)
             {
                 InternalConnectors = new Dictionary<string, DataValue?>();
+                RegisterGate(name, () => new StatedGate(this));
             }
 
-            public StatedGate(ExternalGate gate)
-                : this(gate.Name, gate.Inputs, gate.Outputs, gate.Parts.Select(p => (GetGate(p.gate.Name), p.inputs, p.outputs)).ToList())
+            public StatedGate(StatedGate gate)
+                : this(gate.Name, gate.Inputs, gate.Outputs, gate.Buses, gate.Parts.Select(p => (GetGate(p.gate.Name), p.inputs, p.outputs)).ToList())
             { }
 
             public Dictionary<string, DataValue?> InternalConnectors { get; }
@@ -44,9 +45,9 @@ namespace HardwareSimulator.Core
                         source[item.Key] = item.Value;
             }
         }
-        
+
         private static readonly Regex _regexFile, _regexContent, _regexConnectors, _regexPart;
-        
+
         private readonly List<(Gate gate, Connector[] inputs, Connector[] outputs)> Parts;
 
         static ExternalGate()
@@ -61,28 +62,38 @@ namespace HardwareSimulator.Core
             _regexPart = new Regex(name + @"\s*\(\s*(?:" + name + span + @"?\s*=\s*" + name + span + @"?\s*,?\s*)+\)\s*;");
         }
 
-        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
-            : this(name, inputs, outputs, false, parts)
-        { }
+        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, IEnumerable<string> buses, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
+            : this(name, inputs, outputs, buses, false, parts)
+        {
+            RegisterGate(name, this);
+        }
 
-        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, bool stated, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
+        private ExternalGate(string name, IEnumerable<string> inputs, IEnumerable<string> outputs, IEnumerable<string> buses, bool stated, List<(Gate gate, Connector[] inputs, Connector[] outputs)> parts)
             : base(name, inputs, outputs, stated)
         {
             Parts = parts;
-
-            if (IsStated)
-                RegisterGate(name, () => new StatedGate(this));
-            else
-                RegisterGate(name, this);
+            Buses = buses.ToList().AsReadOnly();
         }
+
+        public IReadOnlyList<string> Buses { get; }
 
         protected override Dictionary<string, DataValue?> Execute(Dictionary<string, DataValue?> inputs)
         {
             inputs["true"] = true;
             inputs["false"] = false;
 
-            foreach (var (gate, ins, outs) in Parts)
-                ProcessResults(gate.Execute(GetInputs(ins).GroupBy(t => t.name, t => t.value).Select(n => (n.Key, n.Aggregate((prev, next) => prev | next))).ToArray()), outs);
+            foreach (var bus in Buses.Where(inputs.ContainsKey))
+            {
+                inputs[bus] = 0;
+            }
+
+            Execute();
+
+            void Execute()
+            {
+                foreach (var (gate, ins, outs) in Parts)
+                    ProcessResults(gate.Execute(GetInputs(ins).GroupBy(t => t.name, t => t.value).Select(n => (n.Key, n.Aggregate((prev, next) => prev | next))).ToArray()), outs);
+            }
 
             inputs.Remove("true");
             inputs.Remove("false");
@@ -174,7 +185,7 @@ namespace HardwareSimulator.Core
             {
                 foreach (var result in results)
                 {
-                    foreach (var output in outs)
+                    foreach (var o in outs.Where(output => output.Key == result.Key).SelectMany(output => output))
                     {
                         var split = o.Split("[.]".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries);
                         var name = split[0];
@@ -233,15 +244,16 @@ namespace HardwareSimulator.Core
 
             if (name != Path.GetFileNameWithoutExtension(file))
                 throw new System.Exception($"Chip name not equals the file name. Actual:'{name}', expected:'{Path.GetFileNameWithoutExtension(file)}'");
-            
+
             var content = _regexContent.Match(regex.Groups[2].Value);
             var stated = content.Groups[1].Success;
             var ins = _regexConnectors.Matches(content.Groups[2].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
             var outs = _regexConnectors.Matches(content.Groups[3].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray();
+            var buses = content.Groups[5].Success ? _regexConnectors.Matches(content.Groups[5].Value).Cast<Match>().Select(m => m.Groups[1].Value).ToArray() : Enumerable.Empty<string>();
             var parts = content.Groups[content.Groups.Count - 1].Value;
             var gates = Parse(ins, outs, new FileInfo(file).Directory, parts.Split("\r\n".ToCharArray(), System.StringSplitOptions.RemoveEmptyEntries).Select(p => p.Trim()));
 
-            return stated || gates.Any(g => g.gate.IsStated) ? new StatedGate(name, ins, outs, gates) : new ExternalGate(name, ins, outs, gates);
+            return stated || gates.Any(g => g.gate.IsStated) ? new StatedGate(name, ins, outs, buses, gates) : new ExternalGate(name, ins, outs, buses, gates);
         }
 
         private static List<(Gate gate, Connector[] inputs, Connector[] outputs)> Parse(string[] ins, string[] outs, DirectoryInfo directory, IEnumerable<string> partsString)
