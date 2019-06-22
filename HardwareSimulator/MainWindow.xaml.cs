@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using HardwareSimulator.Core;
 #if Computer8Bits
 using DataValue = HardwareSimulator.Core.DataValue8Bits;
@@ -86,6 +87,8 @@ namespace HardwareSimulator
             }
         }
 
+        public LambdaCommand ClockCommand { get; }
+
         private bool _autoExecute = true;
         public bool AutoExecute
         {
@@ -112,6 +115,17 @@ namespace HardwareSimulator
             InitializeComponent();
 
             Loaded += LoadGate_Click;
+
+            ClockCommand = new LambdaCommand(() => SelectedGate is ExternalGate ext && ext.Clock != null, () =>
+             {
+                 var clock = SelectedGate is ExternalGate ext ? ext.Clock : null;
+                 InputConnectors[clock] = true;
+                 ExecuteGate();
+                 InputConnectors[clock] = false;
+                 ExecuteGate();
+             });
+
+            CommandBindings.Add(new CommandBinding(ClockCommand));
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -130,6 +144,7 @@ namespace HardwareSimulator
                 try
                 {
                     SelectedGate = ExternalGate.Parse(dialog.FileName);
+                    AutoExecute = !ClockCommand.LastExecute;
                     Title = System.IO.Path.GetFileName(dialog.FileName);
                 }
                 catch (System.Exception ex)
