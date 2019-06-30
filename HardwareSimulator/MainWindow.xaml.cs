@@ -6,6 +6,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using HardwareSimulator.Core;
+using Microsoft.Win32;
 #if Computer8Bits
 using DataValue = HardwareSimulator.Core.DataValue8Bits;
 using InnerType = System.Byte;
@@ -133,23 +134,23 @@ namespace HardwareSimulator
         private void LoadGate_Click(object sender, RoutedEventArgs e)
             => LoadGate();
 
+        private readonly OpenFileDialog _dialog = new OpenFileDialog
+        {
+            Filter = "HDL Files|*.hdl",
+        };
+
         private void LoadGate()
         {
-            var dialog = new Microsoft.Win32.OpenFileDialog
-            {
-                Filter = "HDL Files|*.hdl",
-            };
-
-            if (dialog.ShowDialog(this) ?? false)
+            if ((Keyboard.Modifiers == ModifierKeys.Shift && !string.IsNullOrEmpty(_dialog.FileName)) || (_dialog.ShowDialog(this) ?? false))
                 try
                 {
-                    SelectedGate = ExternalGate.Parse(dialog.FileName);
+                    SelectedGate = ExternalGate.Parse(_dialog.FileName);
                     AutoExecute = !ClockCommand.LastExecute;
-                    Title = System.IO.Path.GetFileName(dialog.FileName);
+                    Title = System.IO.Path.GetFileName(_dialog.FileName);
                 }
                 catch (System.Exception ex)
                 {
-                    MessageBox.Show(ex.Message, $"Can't open {System.IO.Path.GetFileName(dialog.FileName)}", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(ex.Message, $"Can't open {System.IO.Path.GetFileName(_dialog.FileName)}", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
         }
 
